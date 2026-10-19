@@ -1,0 +1,8 @@
+bin/
+obj/
+out/
+*.exe
+*.exe.config
+*.user
+.vs/
+crash.log
