@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <AssemblyName>Cogitator</AssemblyName>
+    <RootNamespace>Cogitator</RootNamespace>
+    <Nullable>disable</Nullable>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DefineConstants>$(DefineConstants);SHIM</DefineConstants>
+    <NoWarn>CS0414;CS0169;CS0219;CS0162;CS0649;CS0618;CA1416;SYSLIB0014;SYSLIB0003;CS8981;CS0108;CS0114</NoWarn>
+    <InvariantGlobalization>false</InvariantGlobalization>
+    <ApplicationIcon>../assets/cog.ico</ApplicationIcon>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../src/Cogitator.cs" />
+    <Compile Include="shim/*.cs" />
+    <EmbeddedResource Include="../assets/fonts/FSEX.ttf" LogicalName="FSEX.ttf" />
+    <EmbeddedResource Include="../assets/fonts/CogDOS.ttf" LogicalName="CogDOS.ttf" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="11.2.3" />
+    <PackageReference Include="Avalonia.Desktop" Version="11.2.3" />
+    <PackageReference Include="Avalonia.Skia" Version="11.2.3" />
+    <PackageReference Include="Microsoft.Win32.Registry" Version="5.0.0" />
+  </ItemGroup>
+</Project>
