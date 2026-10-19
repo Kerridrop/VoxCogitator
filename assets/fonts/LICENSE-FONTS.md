@@ -1,4 +1,4 @@
-# Fonts / Шрифты
+# Fonts
 
 Both fonts are embedded into `Cogitator.exe` as resources.
 

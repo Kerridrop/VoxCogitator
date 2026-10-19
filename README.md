@@ -1,27 +1,22 @@
-# Vox Cogitator · Когитатор Связи
+# Vox Cogitator
 
-Диагностика сети и VPN для Windows в духе старого ЭЛТ-терминала.
-Network & VPN diagnostics for Windows with a CRT soul.
+Network diagnostics for Windows with the soul of an old CRT terminal.
 
 ![Terminal](docs/home.png)
 
-Когитатор ищет, где рвётся связь: дома, у провайдера, на VPN-сервере или по пути до него. Ритуалы проверяют сеть и туннель и выносят приговор, сонар и Ауспик следят за пингом в фоне, Страж сообщает о падениях, летопись хранит историю. Сетевые настройки он не трогает — только смотрит.
+The cogitator finds where your connection breaks — your home network, your provider, a remote server or the path in between. Rituals test the link and pass a verdict, the sonar and the Auspex watch latency in the background, the Warden raises the alarm when the link falls, and the Chronicle keeps every verdict. It never changes your network settings — it only observes.
 
-It finds where the link breaks — at home, at the ISP, on the VPN server or along the path — and keeps a chronicle of every verdict. It never changes network settings.
+## Run
 
-## Запуск · Run
+Download `Cogitator.exe` from [Releases](../../releases) and run it — no installation needed (Windows 10/11).
+The file is unsigned, so SmartScreen may warn you: click "More info → Run anyway".
 
-Скачай `Cogitator.exe` из [Releases](../../releases) и запусти — установка не нужна (Windows 10/11).
-Файл не подписан: если SmartScreen предупредит, нажми «Подробнее → Выполнить в любом случае».
-
-Download `Cogitator.exe` from [Releases](../../releases) and run it. If SmartScreen warns: "More info → Run anyway".
-
-## Сборка · Build
+## Build
 
 ```
 dotnet build -c Release -o out
 ```
 
-## Лицензия · License
+## License
 
-[MIT](LICENSE) © KeRR · шрифты / fonts: [LICENSE-FONTS](assets/fonts/LICENSE-FONTS.md)
+[MIT](LICENSE) © KeRR · fonts: [LICENSE-FONTS](assets/fonts/LICENSE-FONTS.md)
