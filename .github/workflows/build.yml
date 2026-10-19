@@ -6,6 +6,11 @@ on:
     tags: ['v*']
   pull_request:
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g. v1.0). Leave empty to just build.'
+        required: false
+        default: ''
 
 permissions:
   contents: write
@@ -25,8 +30,9 @@ jobs:
           name: Cogitator-windows
           path: out/Cogitator.exe
       - name: Release
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: startsWith(github.ref, 'refs/tags/v') || inputs.version != ''
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" out/Cogitator.exe --title "$GITHUB_REF_NAME" --generate-notes
+          TAG: ${{ inputs.version != '' && inputs.version || github.ref_name }}
+        run: gh release create "$TAG" out/Cogitator.exe --target "$GITHUB_SHA" --title "$TAG" --generate-notes
