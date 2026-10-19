@@ -1,5 +1,5 @@
 #!/bin/sh
-# Сборка без Windows: Mono (mcs). На Windows — `dotnet build -c Release`.
+# Build without Windows using Mono (mcs). On Windows: dotnet build -c Release
 set -e
 mkdir -p out
 mcs -sdk:4.5 -target:winexe -platform:anycpu -optimize+ -codepage:utf8 \
