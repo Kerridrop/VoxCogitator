@@ -7066,14 +7066,19 @@ namespace Cogitator
         public double Last = -2;            // -2 — ещё нет данных, -1 — нет ответа
         public double Loss, Jitter;
         public int MissStreak;
-        public bool Vpn, Proxy;
+        public volatile bool Vpn, Proxy;
+        public DateTime At = DateTime.MinValue;   // когда пришёл последний замер
+        // замер не обновлялся дольше 3 с — опрос завис (сеть рвётся так, что ping не возвращается вовремя)
+        public bool Stale { get { return Last != -2 && At != DateTime.MinValue && (DateTime.Now - At).TotalSeconds > 3; } }
+        // два ответа подряд не пришли или опрос завис — связи нет
+        public bool Dead { get { return MissStreak >= 2 || Stale; } }
         public List<double> Hist = new List<double>();
         public Color State
         {
             get
             {
                 if (Last == -2) return Theme.GreenDim;
-                if (MissStreak >= 3) return Theme.Red;
+                if (Dead) return Theme.Red;
                 if (Loss >= 3 || Last > 250) return Theme.Red;
                 if (Loss > 0 || Last > 120 || Jitter > 30) return Theme.Amber;
                 return Theme.Green;
@@ -7290,10 +7295,10 @@ namespace Cogitator
             using (var b = new SolidBrush(Theme.GreenDim))
                 g.DrawString(d.Vpn ? Loc.T("ТУННЕЛЬ") : d.Proxy ? Loc.T("ПРОКСИ") : Loc.T("НАПРЯМУЮ"), Theme.Mono(7.5f, FontStyle.Bold), b, new RectangleF(0, 6, Width - 14, 14), Theme.Right);
 
-            string big = d.Last == -2 ? "···" : d.MissStreak >= 3 ? Loc.T("НЕТ СВЯЗИ") : d.Last < 0 ? "×" : Math.Round(d.Last).ToString();
-            var bf = d.MissStreak >= 3 ? Theme.Title(13f) : Theme.Title(20f);
+            string big = d.Last == -2 ? "···" : d.Dead ? Loc.T("НЕТ СВЯЗИ") : d.Last < 0 ? "×" : Math.Round(d.Last).ToString();
+            var bf = d.Dead ? Theme.Title(13f) : Theme.Title(20f);
             Theme.Glow(g, big, bf, st, new RectangleF(10, 18, 120, 34), Theme.Left);
-            if (d.Last >= 0 && d.MissStreak < 3)
+            if (d.Last >= 0 && !d.Dead)
             {
                 float bw = g.MeasureString(big, bf).Width;
                 using (var b = new SolidBrush(Theme.GreenMid)) g.DrawString(Loc.T("МС"), Theme.Mono(8f, FontStyle.Bold), b, 12 + bw, 33);
@@ -9358,6 +9363,7 @@ namespace Cogitator
             {
                 hudRun = false;
                 gateWatchGen++;
+                if (hudWatch != null) hudWatch.Stop();
                 if (hud != null) hud.Hide();
                 lastIconKey = null;
                 tray.Icon = guardDown ? iconAlert : iconOk;
@@ -9375,11 +9381,39 @@ namespace Cogitator
         }
 
         // раз в секунду — один пинг по текущему пути (через туннель, если он включён)
+        AuspexData hudData;
+        System.Windows.Forms.Timer hudWatch;
+
         void HudLoop()
         {
             var d = new AuspexData();
-            var times = new List<double>();
-            int tickN = 0;
+            hudData = d;
+            // режим (туннель / прокси) — своим потоком: перечисление адаптеров при смене сети может висеть секундами
+            new Thread(() =>
+            {
+                while (hudRun)
+                {
+                    try
+                    {
+                        string pat = Store.Pattern;
+                        bool vpn = Tun.Find(pat) != null;
+                        d.Vpn = vpn;
+                        d.Proxy = !vpn && Tun.SystemProxy() != null;
+                    }
+                    catch { }
+                    for (int i = 0; i < 50 && hudRun; i++) Thread.Sleep(100);
+                }
+            }) { IsBackground = true, Priority = ThreadPriority.BelowNormal }.Start();
+            BeginInvoke(new Action(() =>
+            {
+                // сторож: если замеры перестали приходить, Ауспик всё равно покажет обрыв
+                if (hudWatch == null)
+                {
+                    hudWatch = new System.Windows.Forms.Timer { Interval = 1000 };
+                    hudWatch.Tick += (s, e) => { var hd = hudData; if (hd != null && hd.Stale) HudApply(hd); };
+                }
+                hudWatch.Start();
+            }));
             using (var p = new Ping())
             {
                 while (hudRun)
@@ -9387,19 +9421,10 @@ namespace Cogitator
                     var sw = Stopwatch.StartNew();
                     double v = -1;
                     try { var r = p.Send("1.1.1.1", 1000); if (r.Status == IPStatus.Success) v = r.RoundtripTime; } catch { }
-                    if (tickN++ % 5 == 0)
-                    {
-                        try
-                        {
-                            string pat = Store.Pattern;
-                            d.Vpn = Tun.Find(pat) != null;
-                            d.Proxy = !d.Vpn && Tun.SystemProxy() != null;
-                        }
-                        catch { }
-                    }
                     lock (d.Hist) { d.Hist.Add(v); if (d.Hist.Count > 60) d.Hist.RemoveAt(0); }
                     AuspexLog.Add(v, d.Vpn ? 1 : d.Proxy ? 2 : 0);
                     d.Last = v;
+                    d.At = DateTime.Now;
                     d.MissStreak = v < 0 ? d.MissStreak + 1 : 0;
                     List<double> last; lock (d.Hist) last = d.Hist.Skip(Math.Max(0, d.Hist.Count - 30)).ToList();
                     d.Loss = Math.Round(100.0 * last.Count(x => x < 0) / last.Count, 1);
@@ -9418,10 +9443,10 @@ namespace Cogitator
         {
             if (!Store.Hud || hud == null) return;
             hud.Data = d;
-            if (d.Last >= 0 || d.MissStreak >= 3) NoteReading(Loc.T("АУСПИК · ") + (d.MissStreak >= 3 ? Loc.T("НЕТ СВЯЗИ") : Math.Round(d.Last) + Loc.T(" МС") + (d.Loss > 0 ? " · " + d.Loss.ToString("0.#", CultureInfo.InvariantCulture) + "%" : "")), d.State);
+            if (d.Last >= 0 || d.Dead) NoteReading(Loc.T("АУСПИК · ") + (d.Dead ? Loc.T("НЕТ СВЯЗИ") : Math.Round(d.Last) + Loc.T(" МС") + (d.Loss > 0 ? " · " + d.Loss.ToString("0.#", CultureInfo.InvariantCulture) + "%" : "")), d.State);
             hud.Invalidate();
             // живой пинг в трее
-            string txt = d.MissStreak >= 3 || d.Last < 0 ? "×" : Math.Min(999, Math.Round(d.Last)).ToString();
+            string txt = d.Dead || d.Last < 0 ? "×" : Math.Min(999, Math.Round(d.Last)).ToString();
             Color c = d.State;
             string key = txt + c.ToArgb();
             if (key != lastIconKey)
@@ -9451,7 +9476,7 @@ namespace Cogitator
                 }
                 catch { }
             }
-            string tt = d.MissStreak >= 3 ? Loc.T("Ауспик: СВЯЗИ НЕТ") : Loc.T("Ауспик: ") + (d.Last < 0 ? Loc.T("нет ответа") : Math.Round(d.Last) + Loc.T(" мс")) + Loc.T(" · потери ") + Math.Round(d.Loss, 1) + "% · " + (d.Vpn ? Loc.T("туннель") : Loc.T("напрямую"));
+            string tt = d.Dead ? Loc.T("Ауспик: СВЯЗИ НЕТ") : Loc.T("Ауспик: ") + (d.Last < 0 ? Loc.T("нет ответа") : Math.Round(d.Last) + Loc.T(" мс")) + Loc.T(" · потери ") + Math.Round(d.Loss, 1) + "% · " + (d.Vpn ? Loc.T("туннель") : Loc.T("напрямую"));
             tray.Text = tt.Length > 63 ? tt.Substring(0, 63) : tt;
         }
 
