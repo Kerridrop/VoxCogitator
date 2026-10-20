@@ -298,7 +298,25 @@ namespace System.Windows.Forms
         public BorderStyle BorderStyle { get; set; }
     }
 
-    public class Label : Control { public bool AutoSize { get; set; } }
+    public class Label : Control
+    {
+        public new bool AutoSize { get; set; }
+        public Label() { BackColor = Color.FromArgb(0, 0, 0, 0); }
+        internal void Measure()
+        {
+            if (!AutoSize || string.IsNullOrEmpty(Text)) return;
+            int hh = (int)Math.Ceiling(Font.LineHeight); int ww = (int)Math.Ceiling(Font.MeasureText(Text)) + 2;
+            if (Width != ww || Height != hh) SetBounds(Left, Top, ww, Math.Max(hh, 12));
+        }
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            Measure();
+            if (string.IsNullOrEmpty(Text)) return;
+            using (var b = new SolidBrush(ForeColor))
+                e.Graphics.DrawString(Text, Font, b, new RectangleF(0, 0, Math.Max(Width, 4000), Height > 0 ? Height : Font.LineHeight),
+                    new StringFormat(StringFormatFlags.NoWrap | StringFormatFlags.NoClip) { LineAlignment = StringAlignment.Center });
+        }
+    }
 
     public class FlowLayoutPanel : Panel
     {
@@ -307,6 +325,7 @@ namespace System.Windows.Forms
         internal override void LayoutChildren()
         {
             int cx = Padding.Left, cy = Padding.Top, rowMax = 0;
+            foreach (var c in Controls.Items) { var lb = c as Label; if (lb != null) lb.Measure(); }
             foreach (var c in Controls.Items)
             {
                 if (!c.SelfVisible) continue;
@@ -441,12 +460,94 @@ namespace System.Windows.Forms
     {
         public bool DetectUrls { get; set; }
         public RichTextBoxScrollBars ScrollBars { get; set; }
-        public Color SelectionColor { get; set; }
+        public Color SelectionColor { get; set; } = Color.FromArgb(176, 236, 186);
         public Font SelectionFont { get; set; }
-        internal readonly List<KeyValuePair<string, Color>> runs = new List<KeyValuePair<string, Color>>();
-        public string Rtf { set { } }
-        public new void Clear() { runs.Clear(); base.Clear(); }
-        public new void AppendText(string s) { runs.Add(new KeyValuePair<string, Color>(s, SelectionColor)); base.AppendText(s); }
+        struct Run { public string T; public Color C; public bool Bold; public bool NL; }
+        readonly List<Run> runs = new List<Run>();
+        int scroll;
+        public RichTextBox() { BackColor = Color.FromArgb(3, 7, 4); }
+        public new void Clear() { runs.Clear(); scroll = 0; base.Clear(); }
+        public new void AppendText(string s)
+        {
+            bool bold = SelectionFont != null && (SelectionFont.Style & FontStyle.Bold) != 0;
+            var parts = (s ?? "").Replace("\r", "").Split('\n');
+            for (int i = 0; i < parts.Length; i++)
+            {
+                if (parts[i].Length > 0) runs.Add(new Run { T = parts[i], C = SelectionColor, Bold = bold });
+                if (i < parts.Length - 1) runs.Add(new Run { NL = true });
+            }
+            Invalidate();
+        }
+        public string Rtf { set { ParseRtf(value); Invalidate(); } }
+        void ParseRtf(string rtf)
+        {
+            runs.Clear(); scroll = 0;
+            if (string.IsNullOrEmpty(rtf)) return;
+            var colors = new List<Color>();
+            int ct = rtf.IndexOf("\\colortbl");
+            if (ct < 0) ct = rtf.IndexOf("colortbl");
+            if (ct >= 0)
+            {
+                int end = rtf.IndexOf('}', ct);
+                string seg = end > ct ? rtf.Substring(ct, end - ct) : rtf.Substring(ct);
+                foreach (System.Text.RegularExpressions.Match m in System.Text.RegularExpressions.Regex.Matches(seg, @"\\red(\d+)\\green(\d+)\\blue(\d+)"))
+                    colors.Add(Color.FromArgb(int.Parse(m.Groups[1].Value), int.Parse(m.Groups[2].Value), int.Parse(m.Groups[3].Value)));
+            }
+            int bodyStart = rtf.IndexOf("\\f0\\fs");
+            int ci = bodyStart >= 0 ? rtf.IndexOf(' ', bodyStart) : 0;
+            Color cur = SelectionColor; bool bold = false; var sb = new System.Text.StringBuilder();
+            Action flush = null; flush = () => { if (sb.Length > 0) { runs.Add(new Run { T = sb.ToString(), C = cur, Bold = bold }); sb.Clear(); } };
+            for (int i = Math.Max(0, ci); i < rtf.Length; i++)
+            {
+                char c = rtf[i];
+                if (c == '\\')
+                {
+                    i++; if (i >= rtf.Length) break; char k = rtf[i];
+                    if (k == '\\' || k == '{' || k == '}') { sb.Append(k); continue; }
+                    int js = i; while (i < rtf.Length && char.IsLetter(rtf[i])) i++;
+                    string word = rtf.Substring(js, i - js); string num = "";
+                    bool neg = i < rtf.Length && rtf[i] == '-'; if (neg) i++;
+                    while (i < rtf.Length && char.IsDigit(rtf[i])) { num += rtf[i]; i++; }
+                    if (i < rtf.Length && rtf[i] == '?') { } else i--;
+                    if (word == "cf") { flush(); int n = num.Length > 0 ? int.Parse(num) : 0; if (n >= 1 && n <= colors.Count) cur = colors[n - 1]; }
+                    else if (word == "b") { flush(); bold = num != "0"; }
+                    else if (word == "par") { flush(); runs.Add(new Run { NL = true }); }
+                    else if (word == "u") { int code = num.Length > 0 ? int.Parse(num) * (neg ? -1 : 1) : 0; if (code < 0) code += 65536; sb.Append((char)code); }
+                }
+                else if (c == '{' || c == '}') { }
+                else if (c == '\n' || c == '\r') { }
+                else sb.Append(c);
+            }
+            flush();
+        }
+        protected override void OnMouseWheel(MouseEventArgs e) { scroll = Math.Max(0, scroll - Math.Sign(e.Delta) * 3); Invalidate(); }
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            var g = e.Graphics; var baseF = Font ?? new Font("__mono__", 9f);
+            float lh = baseF.LineHeight; float pad = 6, x = pad, y = pad - scroll * lh; float maxw = Width - pad * 2;
+            using (var fr = new Font(baseF.Name, baseF.SizeInPoints, FontStyle.Regular))
+            using (var fb = new Font(baseF.Name, baseF.SizeInPoints, FontStyle.Bold))
+            {
+                foreach (var r in runs)
+                {
+                    if (r.NL) { x = pad; y += lh; continue; }
+                    var f = r.Bold ? fb : fr; using (var br = new SolidBrush(r.C))
+                    {
+                        foreach (var word in SplitKeep(r.T))
+                        {
+                            float ww = f.MeasureText(word);
+                            if (x + ww > pad + maxw && x > pad) { x = pad; y += lh; }
+                            if (y + lh > 0 && y < Height) g.DrawString(word, f, br, new RectangleF(x, y, ww + 4, lh), new StringFormat(StringFormatFlags.NoWrap | StringFormatFlags.NoClip));
+                            x += ww;
+                        }
+                    }
+                }
+            }
+        }
+        static IEnumerable<string> SplitKeep(string t)
+        {
+            int i = 0; while (i < t.Length) { int sp = t.IndexOf(' ', i); if (sp < 0) { yield return t.Substring(i); break; } yield return t.Substring(i, sp - i + 1); i = sp + 1; }
+        }
     }
 
     public class Timer : IDisposable
