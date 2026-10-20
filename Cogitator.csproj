@@ -23,7 +23,6 @@
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Drawing" />
   </ItemGroup>
-  <!-- вне Windows: справочные сборки .NET Framework из Mono -->
   <PropertyGroup Condition="'$(OS)' != 'Windows_NT' And Exists('/usr/lib/mono/4.8-api')">
     <FrameworkPathOverride>/usr/lib/mono/4.8-api</FrameworkPathOverride>
   </PropertyGroup>
