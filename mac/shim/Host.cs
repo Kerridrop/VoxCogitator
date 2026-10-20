@@ -84,6 +84,9 @@ namespace System.Windows.Forms
         {
             int w = f.Width > 0 ? f.Width : 1280, h = f.Height > 0 ? f.Height : 860;
             f.OnWindowResized(w, h); f.PerformLayout();
+            var pg = Environment.GetEnvironmentVariable("COG_PAGE");
+            if (!string.IsNullOrEmpty(pg)) { try { var mi = f.GetType().GetMethod("ShowPageNow", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic); if (mi != null) mi.Invoke(f, new object[] { int.Parse(pg) }); } catch { } f.PerformLayout(); }
+            if (!string.IsNullOrEmpty(pg) && pg == "3") { try { var fi = f.GetType().GetField("chronList", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic); var lb = fi != null ? fi.GetValue(f) as ListBox : null; if (lb != null && lb.Items.Count > 0) { lb.SelectedIndex = 0; var sc = f.GetType().GetMethod("ShowChron", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic); if (sc != null) sc.Invoke(f, null); } } catch { } f.PerformLayout(); }
             using (var bmp = new SKBitmap(w, h, SKColorType.Bgra8888, SKAlphaType.Premul))
             using (var cv = new SKCanvas(bmp))
             {
