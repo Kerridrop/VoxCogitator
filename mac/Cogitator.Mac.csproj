@@ -5,6 +5,7 @@
     <AssemblyName>Cogitator</AssemblyName>
     <RootNamespace>Cogitator</RootNamespace>
     <Nullable>disable</Nullable>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <ImplicitUsings>disable</ImplicitUsings>
     <LangVersion>latest</LangVersion>
@@ -25,5 +26,7 @@
     <PackageReference Include="Avalonia.Desktop" Version="11.2.3" />
     <PackageReference Include="Avalonia.Skia" Version="11.2.3" />
     <PackageReference Include="Microsoft.Win32.Registry" Version="5.0.0" />
+    <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="8.0.1" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="2.88.9" Condition="'$(RuntimeIdentifier)'=='' or $(RuntimeIdentifier.StartsWith('linux'))" />
   </ItemGroup>
 </Project>

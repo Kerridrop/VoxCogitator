@@ -70,7 +70,7 @@ namespace System.Drawing
         public void Dispose() { if (_m != null) { _m.Dispose(); _m = null; } }
     }
 
-    public sealed class StringFormat
+    public sealed class StringFormat : IDisposable
     {
         public StringAlignment Alignment = StringAlignment.Near;
         public StringAlignment LineAlignment = StringAlignment.Near;
@@ -80,6 +80,7 @@ namespace System.Drawing
         public StringFormat(StringFormatFlags f) { FormatFlags = f; }
         public static StringFormat GenericDefault { get { return new StringFormat(); } }
         public static StringFormat GenericTypographic { get { return new StringFormat(StringFormatFlags.NoClip) { Trimming = StringTrimming.None }; } }
+        public void Dispose() { }
     }
 
     public abstract class Brush : IDisposable { internal abstract SKShader Shader(SKRect bounds); internal virtual SKColor Solid { get { return SKColors.White; } } public virtual void Dispose() { } }
@@ -162,7 +163,7 @@ namespace System.Drawing
 
     namespace Imaging
     {
-        public enum PixelFormat { Format32bppArgb = 2498570, Format24bppRgb = 137224, DontCare = 0 }
+        public enum PixelFormat { Format32bppArgb = 2498570, Format32bppPArgb = 925707, Format24bppRgb = 137224, DontCare = 0 }
         public sealed class ColorMatrix { public float Matrix33 = 1f; public ColorMatrix() { } }
         public sealed class ImageAttributes : IDisposable { internal float Alpha = 1f; public void SetColorMatrix(ColorMatrix m) { Alpha = m.Matrix33; } public void Dispose() { } }
     }
@@ -251,6 +252,7 @@ namespace System.Drawing
         public void TranslateTransform(float dx, float dy) { C.Translate(dx, dy); }
 
         public void Clear(Color c) { C.Clear(new SKColor(c.R, c.G, c.B, c.A)); }
+        public void CopyFromScreen(Point src, Point dst, Size sz) { }
 
         SKPaint Fill(Brush b, SKRect bounds)
         {
