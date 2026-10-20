@@ -412,23 +412,23 @@ namespace Cogitator
             "Виноват VPN-сервер: туннель есть, а интернета через него нет",
             "Сервер принимает подключение, но не выпускает трафик наружу: NAT, форвардинг или DNS на сервере, либо проблемы у хостера.",
             "По SSH: ping 1.1.1.1 с самого сервера и sudo docker ps; перезапусти контейнер или переустанови протокол из клиента Amnezia.",
-            "Виновата твоя сторона: роутер / домашняя сеть",
+            "Потери начинаются у тебя: роутер / домашняя сеть",
             "Перезагрузи роутер, проверь кабели и Wi-Fi.",
             "Виноват провайдер (",
             "Звони в поддержку провайдера и назови узел, с которого начинаются потери (сохрани отчёт).",
             "ПОРЧА В ПУСТОТЕ МЕЖДУ МИРАМИ",
-            "Виновата магистраль между провайдером и сервером — ни ты, ни провайдер напрямую",
+            "Потери начинаются на магистрали между провайдером и сервером — не у тебя и не у провайдера напрямую",
             "Обычно это проходит само. Если держится часами — пиши провайдеру с отчётом или смени локацию сервера.",
             "ПОТЕРИ НА ПУТИ К СВЯТИЛИЩУ",
             "Пакеты теряются уже до VPN-сервера: домашняя линия, провайдер (в т.ч. ТСПУ) или сам сервер",
             "Запусти ритуал III с выключенным VPN — трасса до сервера через провайдера покажет точный участок.",
             "СВЯТИЛИЩЕ ОСКВЕРНЕНО",
-            "Виноват VPN-сервер / хостер",
+            "Похоже, порча на VPN-сервере или у хостера",
             "Зайди в панель хостера: сервер включён, оплачен, IP не сменился? Проверь нагрузку на сервере.",
             "ПОРЧА У ЦЕЛИ",
             "Проблема у конечного узла",
             "ПОРЧА ЗА СВЯТИЛИЩЕМ",
-            "Потери в сети за VPN-сервером — у хостера, а не у тебя и не у провайдера",
+            "Потери начинаются за VPN-сервером — в сети хостера, а не у тебя и не у провайдера",
             "Это участок от сервера до интернета. Если держится — напиши хостеру или смени локацию сервера.",
             "МАРШРУТ НЕ ПОСТРОЕН",
             "Ни один узел не ответил — похоже, интернета нет вообще",
@@ -903,7 +903,7 @@ namespace Cogitator
             "Две трассы идут разом: до святилища мимо туннеля и через туннель дальше. Около минуты, не закрывай когитатор.",
             "магистраль за хостером (до сайтов)",
             "ПОРЧА ЗА ПРЕДЕЛАМИ СВЯТИЛИЩА",
-            "Потери на магистрали между хостером и интернетом — не у тебя, не у провайдера и не на самом сервере",
+            "Потери начинаются на магистрали за хостером — не у тебя, не у провайдера и не на самом сервере",
             "Обычно проходит само. Если держится — сервер в другой локации или у другого хостера обойдёт этот участок.",
             "{0,2}. {1,-15}  rtt {2,-6} потери {3,3}%",
             "Око ауспика вмещает не больше четырёх врат. Убери одни, чтобы вывести другие.",
@@ -947,7 +947,7 @@ namespace Cogitator
             "ОБРЫВ",
             "УЗЛЫ МОЛЧАТ НА ICMP",
             "сеть провайдера",
-            "Виноват провайдер",
+            "Потери начинаются в сети провайдера",
             ": роутер отвечает, а дальше пакеты не идут",
             " или вход интернета в роутер",
             "НЕ ТРЕВОЖЬ КОГИТАТОР.",
@@ -956,7 +956,15 @@ namespace Cogitator
             "Когитатор не смог пробудиться:\n\n",
             "ОПРОС ",
             " · СВЯТИЛИЩЕ",
-            " · ПОТЕРИ "
+            " · ПОТЕРИ ",
+            "Одна трассировка — снимок момента. Если картина повторяется в нескольких прогонах, вывод надёжен.",
+            "Замер — снимок за ~30 с (",
+            " пакетов): с 95% уверенностью реальные потери от ",
+            "% до ",
+            "%. Для долгой картины — Ауспик или повтор переклички.",
+            " пакетов): реальные потери, скорее всего, ниже ",
+            "%. Для долгой картины — Ауспик.",
+            "Виноват провайдер"
         };
 
         static readonly string[] EnS =
@@ -1210,23 +1218,23 @@ namespace Cogitator
             "The VPN server is at fault: the tunnel exists, but no internet through it",
             "The server accepts the connection but doesn't let traffic out: NAT, forwarding or DNS on the server, or hoster problems.",
             "Over SSH: ping 1.1.1.1 from the server itself and sudo docker ps; restart the container or reinstall the protocol from the Amnezia client.",
-            "Your side is at fault: router / home network",
+            "Loss starts on your side: router / home network",
             "Reboot the router, check cables and Wi-Fi.",
             "The ISP is at fault (",
             "Call ISP support and name the node where the loss starts (save the report).",
             "BLIGHT IN THE VOID BETWEEN WORLDS",
-            "The backbone between the ISP and the server is at fault — neither you nor your ISP directly",
+            "Loss starts on the backbone between your provider and the server — not on your side and not directly at the provider",
             "Usually this passes by itself. If it lasts for hours — write to the ISP with the report or change the server location.",
             "LOSS ON THE PATH TO THE SANCTUM",
             "Packets are lost before the VPN server: home line, ISP (incl. DPI) or the server itself",
             "Run ritual III with the VPN off — the trace to the server via the ISP will show the exact segment.",
             "THE SANCTUM IS DEFILED",
-            "The VPN server / hoster is at fault",
+            "Looks like trouble on the VPN server or at the host",
             "Check the hosting panel: is the server on, paid, IP unchanged? Check the server load.",
             "BLIGHT AT THE TARGET",
             "Problem at the final node",
             "BLIGHT BEYOND THE SANCTUM",
-            "Loss in the network behind the VPN server — at the hoster, not on your side or the ISP's",
+            "Loss starts behind the VPN server — in the host's network, not on your side and not at your provider",
             "This is the segment from the server to the internet. If it persists — write to the hoster or change the server location.",
             "ROUTE NOT BUILT",
             "No node answered — looks like there's no internet at all",
@@ -1537,7 +1545,7 @@ namespace Cogitator
             "VERDICT",
             "Ritual completed in ",
             " s. Praise the Machine Spirit.",
-            "++ VERDICT PASSED ++",
+            "++ VERDICT RENDERED ++",
             "BY WILL OF THE NETWORK ADEPT. RITUAL ",
             " COMPLETED IN ",
             " S.",
@@ -1701,7 +1709,7 @@ namespace Cogitator
             "Two traces run at once: to the sanctum outside the tunnel and onward through it. About a minute, don't close the cogitator.",
             "backbone beyond the hoster (to the sites)",
             "BLIGHT BEYOND THE SANCTUM'S BORDERS",
-            "Loss on the backbone between the hoster and the internet — not you, not the ISP and not the server itself",
+            "Loss starts on the backbone beyond the host — not on your side, not at your provider and not on the server itself",
             "Usually passes on its own. If it persists — a server in another location or at another hoster will route around this stretch.",
             "{0,2}. {1,-15}  rtt {2,-6} loss {3,3}%",
             "The auspex eye holds no more than four gates. Remove one to show another.",
@@ -1745,7 +1753,7 @@ namespace Cogitator
             "BREAK",
             "NODES SILENT ON ICMP",
             "ISP network",
-            "The ISP is at fault",
+            "Loss starts in your provider's network",
             ": the router answers, but packets go no further",
             " or the internet feed into the router",
             "DO NOT DISTURB THE COGITATOR.",
@@ -1754,7 +1762,15 @@ namespace Cogitator
             "The cogitator failed to awaken:\n\n",
             "PROBE ",
             " · SANCTUM",
-            " · LOSS "
+            " · LOSS ",
+            "A single trace is a snapshot. If the picture repeats across several runs, the conclusion holds.",
+            "The roll-call is a ~30 s snapshot (",
+            " packets): with 95% confidence the real loss is between ",
+            "% and ",
+            "%. For the long view, use the Auspex or repeat the roll-call.",
+            " packets): real loss is most likely below ",
+            "%. For the long view, use the Auspex.",
+            "The ISP is at fault"
         };
     }
 
@@ -4001,28 +4017,35 @@ namespace Cogitator
 
         Verdict OwnerVerdict(Owner o, string text, Color c)
         {
+            var v = OwnerVerdictRaw(o, text, c);
+            if (o != Owner.None) v.Tips.Add(Loc.T("Одна трассировка — снимок момента. Если картина повторяется в нескольких прогонах, вывод надёжен."));
+            return v;
+        }
+
+        Verdict OwnerVerdictRaw(Owner o, string text, Color c)
+        {
             switch (o)
             {
                 case Owner.Router:
-                    return V(HomeHead, Loc.T("Виновата твоя сторона: роутер / домашняя сеть"), c, text, Loc.T("Перезагрузи роутер, проверь кабели и Wi-Fi."));
+                    return V(HomeHead, Loc.T("Потери начинаются у тебя: роутер / домашняя сеть"), c, text, Loc.T("Перезагрузи роутер, проверь кабели и Wi-Fi."));
                 case Owner.Provider:
-                    return V(IspHead, Loc.T("Виноват провайдер") + IspSfx, c, text, Loc.T("Звони в поддержку провайдера и назови узел, с которого начинаются потери (сохрани отчёт)."));
+                    return V(IspHead, Loc.T("Потери начинаются в сети провайдера") + IspSfx, c, text, Loc.T("Звони в поддержку провайдера и назови узел, с которого начинаются потери (сохрани отчёт)."));
                 case Owner.Transit:
-                    return V(Loc.T("ПОРЧА В ПУСТОТЕ МЕЖДУ МИРАМИ"), Loc.T("Виновата магистраль между провайдером и сервером — ни ты, ни провайдер напрямую"), c, text,
+                    return V(Loc.T("ПОРЧА В ПУСТОТЕ МЕЖДУ МИРАМИ"), Loc.T("Потери начинаются на магистрали между провайдером и сервером — не у тебя и не у провайдера напрямую"), c, text,
                         Loc.T("Обычно это проходит само. Если держится часами — пиши провайдеру с отчётом или смени локацию сервера."));
                 case Owner.Server:
                     if (pathViaTunnel && ppFromTunnel)
                         return V(Loc.T("ПОТЕРИ НА ПУТИ К СВЯТИЛИЩУ"), Loc.T("Пакеты теряются уже до VPN-сервера: домашняя линия, провайдер (в т.ч. ТСПУ) или сам сервер"), c, text,
                             Loc.T("Запусти ритуал III с выключенным VPN — трасса до сервера через провайдера покажет точный участок."));
-                    return V(Loc.T("СВЯТИЛИЩЕ ОСКВЕРНЕНО"), Loc.T("Виноват VPN-сервер / хостер"), c, text,
+                    return V(Loc.T("СВЯТИЛИЩЕ ОСКВЕРНЕНО"), Loc.T("Похоже, порча на VPN-сервере или у хостера"), c, text,
                         Loc.T("Зайди в панель хостера: сервер включён, оплачен, IP не сменился? Проверь нагрузку на сервере."));
                 case Owner.Target:
                     return V(Loc.T("ПОРЧА У ЦЕЛИ"), Loc.T("Проблема у конечного узла"), c, text);
                 case Owner.Beyond:
-                    return V(Loc.T("ПОРЧА ЗА СВЯТИЛИЩЕМ"), Loc.T("Потери в сети за VPN-сервером — у хостера, а не у тебя и не у провайдера"), c, text,
+                    return V(Loc.T("ПОРЧА ЗА СВЯТИЛИЩЕМ"), Loc.T("Потери начинаются за VPN-сервером — в сети хостера, а не у тебя и не у провайдера"), c, text,
                         Loc.T("Это участок от сервера до интернета. Если держится — напиши хостеру или смени локацию сервера."));
                 case Owner.Outer:
-                    return V(Loc.T("ПОРЧА ЗА ПРЕДЕЛАМИ СВЯТИЛИЩА"), Loc.T("Потери на магистрали между хостером и интернетом — не у тебя, не у провайдера и не на самом сервере"), c, text,
+                    return V(Loc.T("ПОРЧА ЗА ПРЕДЕЛАМИ СВЯТИЛИЩА"), Loc.T("Потери начинаются на магистрали за хостером — не у тебя, не у провайдера и не на самом сервере"), c, text,
                         Loc.T("Обычно проходит само. Если держится — сервер в другой локации или у другого хостера обойдёт этот участок."));
                 default:
                     return V(Loc.T("МАРШРУТ НЕ ПОСТРОЕН"), Loc.T("Ни один узел не ответил — похоже, интернета нет вообще"), Theme.Red, text, Loc.T("Запусти ритуал I — он покажет, роутер это или провайдер."));
@@ -4078,7 +4101,7 @@ namespace Cogitator
         }
 
         // ---------- V. Перекличка пакетов ----------
-        PingRes lossRes; double lossPct, lossEff; int lossMaxStreak, lossBursts; string lossNote;
+        PingRes lossRes; double lossPct, lossEff; int lossMaxStreak, lossBursts, lossEffLost, lossEffSent; string lossNote;
 
         void CheckLoss()
         {
@@ -4135,7 +4158,7 @@ namespace Cogitator
             lossPct = Math.Round(100.0 * lost / Math.Max(1, sent), 1);
 
             // если пакеты теряет только один узел — это он режет ICMP, а не твой канал
-            lossEff = lossPct;
+            lossEff = lossPct; lossEffLost = lost; lossEffSent = sent;
             for (int k = 0; k < 3; k++)
             {
                 if (perSent[k] == 0) continue;
@@ -4146,7 +4169,7 @@ namespace Cogitator
                 double others = 100.0 * oL / oS;
                 if (mine >= 20 && others <= 2)
                 {
-                    lossEff = Math.Round(others, 1);
+                    lossEff = Math.Round(others, 1); lossEffLost = oL; lossEffSent = oS;
                     lossNote = Loc.T("Почти все потери — только до ") + targets[k] + Loc.T(": этот узел просто режет ping, к твоему каналу это не относится.");
                 }
             }
@@ -4169,7 +4192,29 @@ namespace Cogitator
             L(lossEff >= 3 ? "fail" : lossEff > 0 ? "warn" : "ok", Loc.T("Итог: потери ") + lossEff + "%" + (lossEff != lossPct ? Loc.T(" (с учётом узла-молчуна; сырые ") + lossPct + "%)" : ""));
         }
 
+        // 95% доверительный интервал Уилсона для доли потерь, в процентах
+        static void Wilson(int x, int n, out double lo, out double hi)
+        {
+            lo = hi = 0; if (n <= 0) return;
+            double z = 1.96, z2 = z * z, p = (double)x / n, d = 1 + z2 / n;
+            double c = (p + z2 / (2 * n)) / d, h = z * Math.Sqrt(p * (1 - p) / n + z2 / (4.0 * n * n)) / d;
+            lo = Math.Max(0, c - h) * 100; hi = Math.Min(1, c + h) * 100;
+        }
+
         Verdict VerdictLoss()
+        {
+            var v = VerdictLossRaw();
+            if (lossRes != null && lossRes.Recv > 0 && lossEffSent > 0)
+            {
+                double lo, hi; Wilson(lossEffLost, lossEffSent, out lo, out hi);
+                v.Tips.Add(lossEffLost > 0
+                    ? Loc.T("Замер — снимок за ~30 с (") + lossEffSent + Loc.T(" пакетов): с 95% уверенностью реальные потери от ") + Math.Round(lo, 1) + Loc.T("% до ") + Math.Round(hi, 1) + Loc.T("%. Для долгой картины — Ауспик или повтор переклички.")
+                    : Loc.T("Замер — снимок за ~30 с (") + lossEffSent + Loc.T(" пакетов): реальные потери, скорее всего, ниже ") + Math.Round(hi, 1) + Loc.T("%. Для долгой картины — Ауспик."));
+            }
+            return v;
+        }
+
+        Verdict VerdictLossRaw()
         {
             if (phys == null) return LocalVerdict();
             string path = vpnUp ? Loc.T("через туннель") : Loc.T("напрямую через провайдера");
