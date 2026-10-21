@@ -33,6 +33,8 @@ namespace Cogitator
 {
     static class Program
     {
+        public const string Version = "1.0.1";
+
         [DllImport("user32.dll")] static extern bool SetProcessDPIAware();
 
         static Mutex single;
@@ -2141,6 +2143,8 @@ namespace Cogitator
             var sb = new RectangleF(r.Right - bw - 18, r.Y + (r.Height - bh) / 2, bw, bh);
             Theme.Box(g, sb, StatusColor, 1.4f);
             Theme.Glow(g, Status, f, StatusColor, sb, Theme.Center);
+            using (var vb = new SolidBrush(Theme.GreenDim))
+                g.DrawString("v" + Program.Version, Theme.Mono(8f, FontStyle.Bold), vb, new RectangleF(sb.X - 86, sb.Y, 80, bh), Ui.NoWrapRight);
         }
     }
 
@@ -5599,7 +5603,6 @@ namespace Cogitator
     {
         public float Open, Progress, Angle;
         public string Label = "";
-        Region region;
 
         public Transition()
         {
@@ -5607,26 +5610,28 @@ namespace Cogitator
             BackColor = Theme.Bg;
         }
 
+        // полоса-штора: сам контрол сужается до видимой ширины, а края открывают страницу под ним.
+        // размер окна (Region) больше не перекраиваем каждый кадр — это и фризило развёрнутое окно.
         public void Apply()
         {
-            int w = (int)Math.Round(Width * Math.Max(0f, Math.Min(1f, Open)));
-            int x = (Width - w) / 2;
-            var old = region;
-            region = new Region(new Rectangle(x, 0, Math.Max(w, 0), Height));
-            Region = region;
-            if (old != null) old.Dispose();
+            var p = Parent;
+            int pw = p != null ? p.ClientSize.Width : Width;
+            int ph = p != null ? p.ClientSize.Height : Height;
+            float o = Math.Max(0f, Math.Min(1f, Open));
+            int w = (int)Math.Round(pw * o);
+            SetBounds((pw - w) / 2, 0, Math.Max(0, w), ph);
             Invalidate();
         }
 
         protected override void OnPaint(PaintEventArgs e)
         {
             var g = e.Graphics;
+            if (Width < 2) return;
             Theme.Prep(g);
             var r = ClientRectangle;
             using (var b = new SolidBrush(Theme.Bg)) g.FillRectangle(b, r);
 
-            float w = r.Width * Math.Max(0f, Math.Min(1f, Open));
-            float x0 = (r.Width - w) / 2f, x1 = x0 + w;
+            float x0 = 0, x1 = r.Width;
 
             for (int i = 0; i < 4; i++)
             {
@@ -7693,7 +7698,7 @@ namespace Cogitator
             var chron = BuildChronicle();
             pages = new Control[] { home, sanct, trials, chron, gates };
             foreach (var p in pages) { p.Visible = false; host.Controls.Add(p); }
-            trans = new Transition { Dock = DockStyle.Fill, Visible = false };
+            trans = new Transition { Dock = DockStyle.None, Visible = false };
             host.Controls.Add(trans);
             trans.BringToFront();
             glitch = new GlitchOverlay { Visible = false };
