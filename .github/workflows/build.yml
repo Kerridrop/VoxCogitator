@@ -2,13 +2,13 @@ name: build
 
 on:
   push:
-    branches: [master]
+    branches: [master, mac-port]
     tags: ['v*']
   pull_request:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Release version (e.g. v1.0). Leave empty to just build.'
+        description: 'Release version (e.g. v1.0.1). Leave empty to just build.'
         required: false
         default: ''
 
@@ -35,4 +35,56 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ inputs.version != '' && inputs.version || github.ref_name }}
-        run: gh release create "$TAG" out/Cogitator.exe --target "$GITHUB_SHA" --title "$TAG" --generate-notes
+        run: |
+          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --target "$GITHUB_SHA" --title "$TAG" --generate-notes
+          gh release upload "$TAG" out/Cogitator.exe --clobber
+
+  macos:
+    runs-on: macos-14
+    needs: windows
+    if: ${{ always() }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Publish (osx-arm64)
+        run: dotnet publish mac/Cogitator.Mac.csproj -c Release -r osx-arm64 --self-contained -o pub
+      - name: Assemble .app
+        shell: bash
+        run: |
+          APP="Vox Cogitator.app"
+          mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
+          cp -R pub/* "$APP/Contents/MacOS/"
+          cp "$APP/Contents/MacOS/Cogitator" "$APP/Contents/MacOS/Cogitator" 2>/dev/null || true
+          cat > "$APP/Contents/Info.plist" <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>CFBundleName</key><string>Vox Cogitator</string>
+            <key>CFBundleDisplayName</key><string>Vox Cogitator</string>
+            <key>CFBundleExecutable</key><string>Cogitator</string>
+            <key>CFBundleIdentifier</key><string>io.github.kerridrop.voxcogitator</string>
+            <key>CFBundlePackageType</key><string>APPL</string>
+            <key>CFBundleShortVersionString</key><string>1.0.1</string>
+            <key>CFBundleVersion</key><string>1.0.1</string>
+            <key>LSMinimumSystemVersion</key><string>11.0</string>
+            <key>NSHighResolutionCapable</key><true/>
+          </dict></plist>
+          PLIST
+          chmod +x "$APP/Contents/MacOS/Cogitator"
+          xattr -cr "$APP" || true
+          ditto -c -k --sequesterRsrc --keepParent "$APP" Cogitator-mac-arm64.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Cogitator-mac-arm64
+          path: Cogitator-mac-arm64.zip
+      - name: Release
+        if: startsWith(github.ref, 'refs/tags/v') || inputs.version != ''
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.version != '' && inputs.version || github.ref_name }}
+        run: |
+          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --target "$GITHUB_SHA" --title "$TAG" --generate-notes
+          gh release upload "$TAG" Cogitator-mac-arm64.zip --clobber
