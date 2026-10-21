@@ -30,9 +30,6 @@
     <FrameworkPathOverride>/usr/lib/mono/4.8-api</FrameworkPathOverride>
   </PropertyGroup>
   <Target Name="DebugRefs" BeforeTargets="CoreCompile">
-    <Warning Text="DBG FPO=[$(FrameworkPathOverride)]" />
-    <Warning Text="DBG TFRoot=[$(TargetFrameworkRootPath)]" />
-    <Warning Text="DBG OS=[$(OS)] NuGetRoot=[$(NuGetPackageRoot)]" />
-    <Warning Text="DBG AutoRefPkg=[$(AutomaticallyUseReferenceAssemblyPackages)]" />
+    <Error Text="DBG FPO=[$(FrameworkPathOverride)] TFRoot=[$(TargetFrameworkRootPath)] OS=[$(OS)] Auto=[$(AutomaticallyUseReferenceAssemblyPackages)]" />
   </Target>
 </Project>
