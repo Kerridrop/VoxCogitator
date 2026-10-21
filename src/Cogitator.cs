@@ -33,6 +33,8 @@ namespace Cogitator
 {
     static class Program
     {
+        public const string Version = "1.0.1";
+
         [DllImport("user32.dll")] static extern bool SetProcessDPIAware();
 
         static Mutex single;
@@ -955,7 +957,35 @@ namespace Cogitator
             "%. Для долгой картины — Ауспик или повтор переклички.",
             " пакетов): реальные потери, скорее всего, ниже ",
             "%. Для долгой картины — Ауспик.",
-            "Виноват провайдер"
+            "Виноват провайдер",
+            "ОКО АУСПИКА НЕ ВЕЛО ДОЗОР ЗА ЭТОТ ПЕРИОД",
+            "ВОЗЗОВИ АУСПИК НА ТЕРМИНАЛЕ — ОН БУДЕТ ТИХО СЛЕДИТЬ ЗА СВЯЗЬЮ И ВЕСТИ ДНЕВНИК ПО МИНУТАМ.",
+            "СВЯЗЬ РВЁТСЯ",
+            "ПОТЕРИ В КАНАЛЕ",
+            "ЗАДЕРЖКА СКАЧЕТ",
+            "ЛЁГКИЕ ПОТЕРИ",
+            "ДОЗОР СПОКОЕН",
+            "НАБЛЮДЕНИЕ: ",
+            " МИН ЗАПИСАНО",
+            " (С ПЕРЕРЫВАМИ)",
+            "ДОСТУПНОСТЬ ",
+            " · ОБРЫВОВ ",
+            " · БЕЗ СВЯЗИ ",
+            " МИН",
+            "ПОТЕРИ ПАКЕТОВ: ",
+            " (ПО ",
+            " ПАКЕТАМ)",
+            "ЗАДЕРЖКА: МЕДИАНА ",
+            " МС · P95 ",
+            "ДЖИТТЕР (ДРОЖАНИЕ): ",
+            "ТУННЕЛЬ ",
+            " МС · НАПРЯМУЮ ",
+            "ХУДШИЙ ОБРЫВ: ",
+            " МИН С ",
+            "ПИК ЗАДЕРЖКИ: ",
+            " МС В ",
+            "СВОДКА ДОЗОРА АУСПИКА",
+            "ЧАСЫ СУТОК · ПОТЕРИ ПО АУСПИКУ"
         };
 
         static readonly string[] EnS =
@@ -1761,7 +1791,35 @@ namespace Cogitator
             "%. For the long view, use the Auspex or repeat the roll-call.",
             " packets): real loss is most likely below ",
             "%. For the long view, use the Auspex.",
-            "The ISP is at fault"
+            "The ISP is at fault",
+            "THE AUSPEX KEPT NO WATCH IN THIS PERIOD",
+            "SUMMON THE AUSPEX ON THE TERMINAL — IT WILL QUIETLY WATCH THE LINK AND KEEP A PER-MINUTE LOG.",
+            "THE LINK IS BREAKING",
+            "LOSS ON THE LINE",
+            "LATENCY IS JUMPY",
+            "MINOR LOSS",
+            "THE WATCH IS CALM",
+            "WATCH: ",
+            " MIN LOGGED",
+            " (WITH GAPS)",
+            "UPTIME ",
+            " · OUTAGES ",
+            " · DOWN ",
+            " MIN",
+            "PACKET LOSS: ",
+            " (OVER ",
+            " PACKETS)",
+            "LATENCY: MEDIAN ",
+            " MS · P95 ",
+            "JITTER: ",
+            "TUNNEL ",
+            " MS · DIRECT ",
+            "WORST OUTAGE: ",
+            " MIN FROM ",
+            "LATENCY PEAK: ",
+            " MS AT ",
+            "AUSPEX WATCH SUMMARY",
+            "HOURS · LOSS BY AUSPEX"
         };
     }
 
@@ -2085,6 +2143,8 @@ namespace Cogitator
             var sb = new RectangleF(r.Right - bw - 18, r.Y + (r.Height - bh) / 2, bw, bh);
             Theme.Box(g, sb, StatusColor, 1.4f);
             Theme.Glow(g, Status, f, StatusColor, sb, Theme.Center);
+            using (var vb = new SolidBrush(Theme.GreenDim))
+                g.DrawString("v" + Program.Version, Theme.Mono(8f, FontStyle.Bold), vb, new RectangleF(sb.X - 86, sb.Y, 80, bh), Ui.NoWrapRight);
         }
     }
 
@@ -6060,12 +6120,16 @@ namespace Cogitator
         int nRed, nAmber, nGreen, nOut, worstHour = -1, minCnt = 1;
         double downSec, avgLoss = -1;
         List<KeyValuePair<string, Color>> findings = new List<KeyValuePair<string, Color>>();
+        List<KeyValuePair<string, Color>> axFindings = new List<KeyValuePair<string, Color>>();
+        KeyValuePair<string, Color> axVerdict;
+        bool axHas;
+        double[] axHourLoss = new double[24]; int[] axHourCnt = new int[24]; int axWorstHour = -1, axMinCnt = 1;
 
         class Hit { public RectangleF R; public string[] Lines; public Color C; public int Pri, Shape; public PointF Ctr; public float Rad; }
         List<Hit> hits = new List<Hit>();
         RectangleF[] chips = new RectangleF[3];
         RectangleF[] modeChips = new RectangleF[2];
-        int chartMode;
+        int chartMode = 1;
         RectangleF chartRect;
         Bitmap beamOld; Stopwatch beamClock; System.Windows.Forms.Timer beamTimer;
         const int BeamMs = 520;
@@ -6232,7 +6296,81 @@ namespace Cogitator
             }
             var lastClean = tests.LastOrDefault(x => x.Key == 'g');
             if (lastClean != null) findings.Add(new KeyValuePair<string, Color>(Loc.T("ПОСЛЕДНЕЕ ЧИСТОЕ ИСПЫТАНИЕ: ") + lastClean.When.ToString("dd.MM HH:mm"), Theme.Green));
+            AnalyzeAuspex();
             Invalidate();
+        }
+
+        static double Perc(List<double> v, double q)
+        {
+            if (v.Count == 0) return 0;
+            var a = v.OrderBy(x => x).ToList();
+            double idx = q * (a.Count - 1); int lo = (int)Math.Floor(idx); int hi = (int)Math.Ceiling(idx);
+            if (lo == hi) return a[lo];
+            return a[lo] + (a[hi] - a[lo]) * (idx - lo);
+        }
+
+        void AnalyzeAuspex()
+        {
+            axFindings.Clear(); axHas = ax.Count > 0;
+            for (int h = 0; h < 24; h++) { axHourLoss[h] = 0; axHourCnt[h] = 0; }
+            axWorstHour = -1;
+            if (!axHas)
+            {
+                axVerdict = new KeyValuePair<string, Color>(Loc.T("ОКО АУСПИКА НЕ ВЕЛО ДОЗОР ЗА ЭТОТ ПЕРИОД"), Theme.GreenDim);
+                axFindings.Add(new KeyValuePair<string, Color>(Loc.T("ВОЗЗОВИ АУСПИК НА ТЕРМИНАЛЕ — ОН БУДЕТ ТИХО СЛЕДИТЬ ЗА СВЯЗЬЮ И ВЕСТИ ДНЕВНИК ПО МИНУТАМ."), Theme.GreenMid));
+                return;
+            }
+            int covered = ax.Count;
+            long sent = ax.Sum(x => (long)x.Sent), recv = ax.Sum(x => (long)x.Recv);
+            double loss = sent > 0 ? 100.0 * (sent - recv) / sent : 0;
+            var up = ax.Where(x => x.Recv > 0).ToList();
+            int upMin = up.Count;
+            double avail = covered > 0 ? 100.0 * upMin / covered : 0;
+            double median = Perc(up.Select(x => x.Avg).ToList(), 0.5);
+            double p95 = Perc(up.Select(x => x.Max).ToList(), 0.95);
+            double jitter = up.Count > 0 ? up.Average(x => x.Jit) : 0;
+            int outages = 0, outMin = 0; bool inOut = false; DateTime worstOutStart = DateTime.MinValue; int curOut = 0, longestOut = 0; DateTime longestStart = DateTime.MinValue;
+            foreach (var m in ax.OrderBy(x => x.When))
+            {
+                if (m.Recv == 0 && m.Sent > 0)
+                {
+                    outMin++; if (!inOut) { inOut = true; outages++; curOut = 0; worstOutStart = m.When; } curOut++;
+                    if (curOut > longestOut) { longestOut = curOut; longestStart = worstOutStart; }
+                }
+                else inOut = false;
+            }
+            foreach (var m in ax)
+            {
+                int h = m.When.Hour; double ml = m.Sent > 0 ? 100.0 * (m.Sent - m.Recv) / m.Sent : 0;
+                axHourLoss[h] += ml; axHourCnt[h]++;
+            }
+            for (int h = 0; h < 24; h++) if (axHourCnt[h] > 0) axHourLoss[h] /= axHourCnt[h];
+            axMinCnt = covered >= 120 ? 3 : covered >= 30 ? 2 : 1;
+            for (int h = 0; h < 24; h++) { if (axHourCnt[h] < axMinCnt) continue; if (axWorstHour < 0 || axHourLoss[h] > axHourLoss[axWorstHour]) axWorstHour = h; }
+
+            Color vc; string vh;
+            if (outages > 0 || loss >= 3 || avail < 99.5) { vc = Theme.Red; vh = outages > 0 ? Loc.T("СВЯЗЬ РВЁТСЯ") : Loc.T("ПОТЕРИ В КАНАЛЕ"); }
+            else if (loss >= 1 || jitter > 30 || p95 > 250) { vc = Theme.Amber; vh = (jitter > 30 || p95 > 250) ? Loc.T("ЗАДЕРЖКА СКАЧЕТ") : Loc.T("ЛЁГКИЕ ПОТЕРИ"); }
+            else { vc = Theme.Green; vh = Loc.T("ДОЗОР СПОКОЕН"); }
+            axVerdict = new KeyValuePair<string, Color>(vh, vc);
+
+            double spanMin = (to - from).TotalMinutes;
+            axFindings.Add(new KeyValuePair<string, Color>(Loc.T("НАБЛЮДЕНИЕ: ") + covered + Loc.T(" МИН ЗАПИСАНО") + (spanMin > covered * 1.5 ? Loc.T(" (С ПЕРЕРЫВАМИ)") : ""), Theme.GreenMid));
+            axFindings.Add(new KeyValuePair<string, Color>(Loc.T("ДОСТУПНОСТЬ ") + (avail >= 99.95 ? "100%" : Pct(avail)) + Loc.T(" · ОБРЫВОВ ") + outages + (outMin > 0 ? Loc.T(" · БЕЗ СВЯЗИ ") + outMin + Loc.T(" МИН") : ""), outages > 0 ? Theme.Red : Theme.Green));
+            axFindings.Add(new KeyValuePair<string, Color>(Loc.T("ПОТЕРИ ПАКЕТОВ: ") + Pct(loss) + Loc.T(" (ПО ") + sent + Loc.T(" ПАКЕТАМ)"), LossColor(loss)));
+            axFindings.Add(new KeyValuePair<string, Color>(Loc.T("ЗАДЕРЖКА: МЕДИАНА ") + Math.Round(median) + Loc.T(" МС · P95 ") + Math.Round(p95) + Loc.T(" МС"), p95 > 250 ? Theme.Amber : Theme.Green));
+            axFindings.Add(new KeyValuePair<string, Color>(Loc.T("ДЖИТТЕР (ДРОЖАНИЕ): ") + Math.Round(jitter) + Loc.T(" МС"), jitter > 30 ? Theme.Amber : Theme.Green));
+            var tun = up.Where(x => x.Mode == 1).ToList(); var dir = up.Where(x => x.Mode == 0).ToList();
+            if (tun.Count >= 3 && dir.Count >= 3)
+                axFindings.Add(new KeyValuePair<string, Color>(Loc.T("ТУННЕЛЬ ") + Math.Round(Perc(tun.Select(x => x.Avg).ToList(), 0.5)) + Loc.T(" МС · НАПРЯМУЮ ") + Math.Round(Perc(dir.Select(x => x.Avg).ToList(), 0.5)) + Loc.T(" МС"), Theme.GreenMid));
+            if (longestOut > 0)
+                axFindings.Add(new KeyValuePair<string, Color>(Loc.T("ХУДШИЙ ОБРЫВ: ") + longestOut + Loc.T(" МИН С ") + longestStart.ToString("dd.MM HH:mm"), Theme.Red));
+            else
+            {
+                var worst = up.OrderByDescending(x => x.Max).FirstOrDefault();
+                if (worst != null && worst.Max > median * 2 && worst.Max > 120)
+                    axFindings.Add(new KeyValuePair<string, Color>(Loc.T("ПИК ЗАДЕРЖКИ: ") + Math.Round(worst.Max) + Loc.T(" МС В ") + worst.When.ToString("dd.MM HH:mm"), Theme.Amber));
+            }
         }
 
         protected override void OnMouseMove(MouseEventArgs e)
@@ -6628,9 +6766,11 @@ namespace Cogitator
         void PaintHours(Graphics g, RectangleF box)
 
         {
-            Header(g, box, Loc.T("ЧАСЫ СУТОК · СРЕДНИЕ ПОТЕРИ"));
+            bool aux = chartMode == 1;
+            var HL = aux ? axHourLoss : hourLoss; var HC = aux ? axHourCnt : hourCnt; int wH = aux ? axWorstHour : worstHour; int mC = aux ? axMinCnt : minCnt;
+            Header(g, box, aux ? Loc.T("ЧАСЫ СУТОК · ПОТЕРИ ПО АУСПИКУ") : Loc.T("ЧАСЫ СУТОК · СРЕДНИЕ ПОТЕРИ"));
             var p = new RectangleF(box.X + 48, box.Y + 22, box.Width - 62, box.Height - 46);
-            double mx = 0; for (int h = 0; h < 24; h++) if (hourCnt[h] > 0) mx = Math.Max(mx, hourLoss[h]);
+            double mx = 0; for (int h = 0; h < 24; h++) if (HC[h] > 0) mx = Math.Max(mx, HL[h]);
             double top = Math.Max(5, Math.Ceiling(mx / 5) * 5);
             var tf = Theme.Mono(7.5f, FontStyle.Regular);
             using (var b = new SolidBrush(Theme.GreenDim))
@@ -6647,16 +6787,16 @@ namespace Cogitator
                 if (h % 3 == 0) using (var b = new SolidBrush(Theme.GreenDim)) g.DrawString(h.ToString("00"), tf, b, new RectangleF(x - 8, p.Bottom + 4, bw + 16, 14), Theme.Center);
                 var col = new RectangleF(p.X + h * slot, p.Y, slot, p.Height);
                 bool hov = col.Contains(mouse);
-                if (hourCnt[h] == 0)
+                if (HC[h] == 0)
                 {
                     using (var b = new SolidBrush(Color.FromArgb(40, Theme.GreenDim))) g.FillRectangle(b, x, p.Bottom - 2, bw, 2);
                     hits.Add(new Hit { R = col, C = Theme.GreenDim, Lines = new[] { h.ToString("00") + ":00–" + ((h + 1) % 24).ToString("00") + ":00", Loc.T("ЗАМЕРОВ НЕТ") } });
                     continue;
                 }
-                float bh = Math.Max(2, (float)(p.Height * Math.Min(1, hourLoss[h] / top)));
+                float bh = Math.Max(2, (float)(p.Height * Math.Min(1, HL[h] / top)));
                 var bar = new RectangleF(x, p.Bottom - bh, bw, bh);
-                Color c = h == worstHour && hourLoss[h] > 0 ? Theme.Orange : Theme.GreenMid;
-                bool weak = hourCnt[h] < minCnt;
+                Color c = h == wH && HL[h] > 0 ? Theme.Orange : Theme.GreenMid;
+                bool weak = HC[h] < minCnt;
                 if (hov) using (var b = new SolidBrush(Color.FromArgb(25, Theme.Green))) g.FillRectangle(b, col);
                 if (weak)
                 {
@@ -6665,23 +6805,34 @@ namespace Cogitator
                 }
                 else using (var b = new SolidBrush(Color.FromArgb(hov ? 255 : 210, c))) g.FillRectangle(b, bar);
                 hits.Add(new Hit { R = col, C = c, Lines = weak
-                    ? new[] { h.ToString("00") + ":00–" + ((h + 1) % 24).ToString("00") + ":00", Loc.T("ЗАМЕРОВ: ") + hourCnt[h] + Loc.T(" — МАЛО, НЕНАДЁЖНО"), Loc.T("СРЕДНИЕ ПОТЕРИ: ") + Pct(hourLoss[h]) }
-                    : new[] { h.ToString("00") + ":00–" + ((h + 1) % 24).ToString("00") + ":00", Loc.T("ЗАМЕРОВ: ") + hourCnt[h], Loc.T("СРЕДНИЕ ПОТЕРИ: ") + Pct(hourLoss[h]) } });
+                    ? new[] { h.ToString("00") + ":00–" + ((h + 1) % 24).ToString("00") + ":00", Loc.T("ЗАМЕРОВ: ") + HC[h] + Loc.T(" — МАЛО, НЕНАДЁЖНО"), Loc.T("СРЕДНИЕ ПОТЕРИ: ") + Pct(HL[h]) }
+                    : new[] { h.ToString("00") + ":00–" + ((h + 1) % 24).ToString("00") + ":00", Loc.T("ЗАМЕРОВ: ") + HC[h], Loc.T("СРЕДНИЕ ПОТЕРИ: ") + Pct(HL[h]) } });
             }
-            if (worstHour >= 0 && hourCnt[worstHour] > 0 && hourLoss[worstHour] > 0)
+            if (wH >= 0 && HC[wH] > 0 && HL[wH] > 0)
             {
-                float x = p.X + worstHour * slot + slot / 2;
-                float y = p.Bottom - Math.Max(2, (float)(p.Height * Math.Min(1, hourLoss[worstHour] / top)));
+                float x = p.X + wH * slot + slot / 2;
+                float y = p.Bottom - Math.Max(2, (float)(p.Height * Math.Min(1, HL[wH] / top)));
                 Theme.Glow(g, Loc.T("ХУДШИЙ"), Theme.Mono(7.5f, FontStyle.Bold), Theme.Orange, new RectangleF(x - 40, y - 16, 80, 14), Theme.Center);
             }
         }
 
         void PaintFindings(Graphics g, RectangleF box)
         {
-            Header(g, box, Loc.T("ВЫВОДЫ КОГИТАТОРА"));
+            bool aux = chartMode == 1;
+            Header(g, box, aux ? Loc.T("СВОДКА ДОЗОРА АУСПИКА") : Loc.T("ВЫВОДЫ КОГИТАТОРА"));
             var f = Theme.Mono(9f, FontStyle.Bold);
             float y = box.Y + 22, x = box.X + 14, tw = box.Width - 40;
-            foreach (var kv in findings)
+            if (aux)
+            {
+                var vf = Theme.Title(12f);
+                var vsz = g.MeasureString(axVerdict.Key, vf, (int)tw);
+                var vb = new RectangleF(x, y, tw + 16, vsz.Height + 10);
+                using (var b = new SolidBrush(Color.FromArgb(22, axVerdict.Value))) g.FillRectangle(b, vb);
+                Theme.Line(g, axVerdict.Value, vb.X, vb.Y, vb.X, vb.Bottom, 2.4f);
+                Theme.Glow(g, axVerdict.Key, vf, axVerdict.Value, new RectangleF(x + 12, y + 3, tw, vsz.Height + 4), StringFormat.GenericDefault);
+                y += vsz.Height + 18;
+            }
+            foreach (var kv in (aux ? axFindings : findings))
             {
                 var sz = g.MeasureString(kv.Key, f, (int)tw);
                 if (y + sz.Height > box.Bottom - 8) break;

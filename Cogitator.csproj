@@ -12,6 +12,7 @@
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <Nullable>disable</Nullable>
+    <Version>1.0.1</Version>
     <NoWarn>CS0414;CS0169;CS0219;CS0162;CS0649</NoWarn>
   </PropertyGroup>
   <ItemGroup>
