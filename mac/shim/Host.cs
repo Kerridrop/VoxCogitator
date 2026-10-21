@@ -108,7 +108,7 @@ namespace System.Windows.Forms
         static void StartNative(Timer t)
         {
             var dt = t.Native as DispatcherTimer;
-            if (dt == null) { dt = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(t.Ms) }; dt.Tick += (s, e) => t.Fire(); t.Native = dt; }
+            if (dt == null) { dt = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(t.Ms) }; dt.Tick += (s, e) => { try { t.Fire(); } catch (Exception ex) { Host.LogEx("timer", ex); } }; t.Native = dt; }
             dt.Interval = TimeSpan.FromMilliseconds(t.Ms); dt.Start();
         }
         internal static void FlushTimers() { booted = true; foreach (var t in pendingTimers.ToArray()) StartNative(t); pendingTimers.Clear(); }
@@ -124,7 +124,19 @@ namespace System.Windows.Forms
         internal static void SetPointerScreen(Point p) { pointerScreen = p; }
         public static void ShowMenu(ToolStripDropDown menu, Control owner, Point screen) { }
         public static void Notify(string title, string text) { Console.Error.WriteLine("[NOTIFY] " + title + ": " + text); }
-        public static IAsyncResult Post(Delegate d) { Dispatcher.UIThread.Post(() => { try { d.DynamicInvoke(); } catch { } }); return new DummyAsync(); }
+        static readonly object logLk = new object();
+        public static void LogEx(string where, Exception ex)
+        {
+            try
+            {
+                Console.Error.WriteLine("[ERR " + where + "] " + ex);
+                string dir = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Cogitator");
+                System.IO.Directory.CreateDirectory(dir);
+                lock (logLk) System.IO.File.AppendAllText(System.IO.Path.Combine(dir, "mac-errors.log"), DateTime.Now + " [" + where + "] " + ex + "\n\n");
+            }
+            catch { }
+        }
+        public static IAsyncResult Post(Delegate d) { Dispatcher.UIThread.Post(() => { try { d.DynamicInvoke(); } catch (Exception ex) { LogEx("post", ex); } }); return new DummyAsync(); }
         public static object InvokeSync(Delegate d) { if (Dispatcher.UIThread.CheckAccess()) return d.DynamicInvoke(); object r = null; Dispatcher.UIThread.InvokeAsync(() => { r = d.DynamicInvoke(); }).Wait(); return r; }
     }
 
@@ -256,6 +268,7 @@ namespace System.Windows.Forms
                 var canvas = lease.SkCanvas;
                 int save = canvas.Save();
                 try { var g = new Graphics(canvas); form.PaintForm(g); }
+                catch (Exception ex) { Host.LogEx("render", ex); }
                 finally { canvas.RestoreToCount(save); }
             }
         }
