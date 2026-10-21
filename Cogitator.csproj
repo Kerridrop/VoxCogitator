@@ -12,7 +12,6 @@
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <Nullable>disable</Nullable>
-    <Version>1.0.1</Version>
     <NoWarn>CS0414;CS0169;CS0219;CS0162;CS0649</NoWarn>
   </PropertyGroup>
   <ItemGroup>
@@ -24,9 +23,7 @@
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Drawing" />
   </ItemGroup>
-  <ItemGroup>
-    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" Condition="'$(OS)' == 'Windows_NT'" />
-  </ItemGroup>
+  <!-- вне Windows: справочные сборки .NET Framework из Mono -->
   <PropertyGroup Condition="'$(OS)' != 'Windows_NT' And Exists('/usr/lib/mono/4.8-api')">
     <FrameworkPathOverride>/usr/lib/mono/4.8-api</FrameworkPathOverride>
   </PropertyGroup>
