@@ -5603,6 +5603,7 @@ namespace Cogitator
     {
         public float Open, Progress, Angle;
         public string Label = "";
+        Region region;
 
         public Transition()
         {
@@ -5610,9 +5611,16 @@ namespace Cogitator
             BackColor = Theme.Bg;
         }
 
-        // контрол на весь экран со стабильным буфером: регион окна не перекраиваем и размер не меняем
-        // (и то, и другое каждый кадр давало фриз/рывки на развёрнутом окне) — створки рисуем сами.
-        public void Apply() { Invalidate(); }
+        public void Apply()
+        {
+            int w = (int)Math.Round(Width * Math.Max(0f, Math.Min(1f, Open)));
+            int x = (Width - w) / 2;
+            var old = region;
+            region = new Region(new Rectangle(x, 0, Math.Max(w, 0), Height));
+            Region = region;
+            if (old != null) old.Dispose();
+            Invalidate();
+        }
 
         protected override void OnPaint(PaintEventArgs e)
         {
@@ -5671,6 +5679,7 @@ namespace Cogitator
                 for (int i = 0; i < filled; i++) g.FillRectangle(b, bar.X + 3 + i * cw, bar.Y + 3, cw - 2, bar.Height - 6);
             using (var b = new SolidBrush(Theme.GreenDim))
                 g.DrawString(Loc.T("СИНХРОНИЗАЦИЯ МАШИННОГО ДУХА"), Theme.Mono(8.5f, FontStyle.Bold), b, new RectangleF(0, cy + 92, r.Width, 18), Theme.Center);
+            Theme.Overlay(g, r, (int)(Angle * 40) % 160, (int)(Angle * 70) % 160);
         }
     }
 
