@@ -17,14 +17,19 @@ permissions:
 
 jobs:
   windows:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '8.0.x'
+      - name: Install Mono
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends mono-complete
       - name: Build
-        run: dotnet build Cogitator.csproj -c Release -o out
+        run: |
+          mkdir -p out
+          mcs -sdk:4.5 -target:winexe -platform:anycpu -optimize+ -codepage:utf8 \
+            -win32icon:assets/cog.ico \
+            -resource:assets/fonts/FSEX.ttf,FSEX.ttf -resource:assets/fonts/CogDOS.ttf,CogDOS.ttf \
+            -r:System.Windows.Forms.dll -r:System.Drawing.dll \
+            -out:out/Cogitator.exe src/Cogitator.cs
       - uses: actions/upload-artifact@v4
         with:
           name: Cogitator-windows
@@ -35,4 +40,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ inputs.version != '' && inputs.version || github.ref_name }}
-        run: gh release create "$TAG" out/Cogitator.exe --target "$GITHUB_SHA" --title "$TAG" --generate-notes
+        run: |
+          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --target "$GITHUB_SHA" --title "$TAG" --generate-notes
+          gh release upload "$TAG" out/Cogitator.exe --clobber

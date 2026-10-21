@@ -1,8 +1,16 @@
 bin/
 obj/
 out/
+pub/
+realbuild/
+ciout/
 *.exe
 *.exe.config
 *.user
 .vs/
 crash.log
+mac/pub/
+mac/obj/
+mac/bin/
+mac/out/
+DBG.txt
