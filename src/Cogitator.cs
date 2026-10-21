@@ -5610,28 +5610,19 @@ namespace Cogitator
             BackColor = Theme.Bg;
         }
 
-        // полоса-штора: сам контрол сужается до видимой ширины, а края открывают страницу под ним.
-        // размер окна (Region) больше не перекраиваем каждый кадр — это и фризило развёрнутое окно.
-        public void Apply()
-        {
-            var p = Parent;
-            int pw = p != null ? p.ClientSize.Width : Width;
-            int ph = p != null ? p.ClientSize.Height : Height;
-            float o = Math.Max(0f, Math.Min(1f, Open));
-            int w = (int)Math.Round(pw * o);
-            SetBounds((pw - w) / 2, 0, Math.Max(0, w), ph);
-            Invalidate();
-        }
+        // контрол на весь экран со стабильным буфером: регион окна не перекраиваем и размер не меняем
+        // (и то, и другое каждый кадр давало фриз/рывки на развёрнутом окне) — створки рисуем сами.
+        public void Apply() { Invalidate(); }
 
         protected override void OnPaint(PaintEventArgs e)
         {
             var g = e.Graphics;
-            if (Width < 2) return;
             Theme.Prep(g);
             var r = ClientRectangle;
             using (var b = new SolidBrush(Theme.Bg)) g.FillRectangle(b, r);
 
-            float x0 = 0, x1 = r.Width;
+            float w = r.Width * Math.Max(0f, Math.Min(1f, Open));
+            float x0 = (r.Width - w) / 2f, x1 = x0 + w;
 
             for (int i = 0; i < 4; i++)
             {
@@ -5680,7 +5671,6 @@ namespace Cogitator
                 for (int i = 0; i < filled; i++) g.FillRectangle(b, bar.X + 3 + i * cw, bar.Y + 3, cw - 2, bar.Height - 6);
             using (var b = new SolidBrush(Theme.GreenDim))
                 g.DrawString(Loc.T("СИНХРОНИЗАЦИЯ МАШИННОГО ДУХА"), Theme.Mono(8.5f, FontStyle.Bold), b, new RectangleF(0, cy + 92, r.Width, 18), Theme.Center);
-            Theme.Overlay(g, r, (int)(Angle * 40) % 160, (int)(Angle * 70) % 160);
         }
     }
 
@@ -7698,7 +7688,7 @@ namespace Cogitator
             var chron = BuildChronicle();
             pages = new Control[] { home, sanct, trials, chron, gates };
             foreach (var p in pages) { p.Visible = false; host.Controls.Add(p); }
-            trans = new Transition { Dock = DockStyle.None, Visible = false };
+            trans = new Transition { Dock = DockStyle.Fill, Visible = false };
             host.Controls.Add(trans);
             trans.BringToFront();
             glitch = new GlitchOverlay { Visible = false };
