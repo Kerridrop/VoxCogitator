@@ -28,5 +28,6 @@
     <PackageReference Include="Microsoft.Win32.Registry" Version="5.0.0" />
     <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="8.0.1" />
     <PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="2.88.9" Condition="'$(RuntimeIdentifier)'=='' or $(RuntimeIdentifier.StartsWith('linux'))" />
+    <PackageReference Include="SkiaSharp.NativeAssets.macOS" Version="2.88.9" Condition="$(RuntimeIdentifier.StartsWith('osx'))" />
   </ItemGroup>
 </Project>
