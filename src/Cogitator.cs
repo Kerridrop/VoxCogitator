@@ -23,12 +23,6 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using Microsoft.Win32;
 
-[assembly: AssemblyTitle("Когитатор Связи")]
-[assembly: AssemblyProduct("Когитатор Связи")]
-[assembly: AssemblyDescription("Ритуалы проверки сети и VPN")]
-[assembly: AssemblyVersion("3.0.0.0")]
-[assembly: AssemblyFileVersion("3.0.0.0")]
-
 namespace Cogitator
 {
     static class Program
