@@ -1,4 +1,3 @@
-// Когитатор Связи — диагностика сети и VPN. Windows, .NET Framework 4.6+
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -34,11 +33,12 @@ namespace Cogitator
 {
     static class Program
     {
+        public const string Version = "1.0.1";
+
         [DllImport("user32.dll")] static extern bool SetProcessDPIAware();
 
         static Mutex single;
 
-        // отпустить единственный экземпляр перед перезапуском (смена языка)
         public static void ReleaseSingle()
         {
             try { single.ReleaseMutex(); } catch { }
@@ -59,8 +59,6 @@ namespace Cogitator
             single = new Mutex(true, "Cogitator.Svyazi.SingleInstance", out fresh);
             if (!fresh)
             {
-                // когитатор уже работает (например, в трее после автозапуска) — просим его показаться
-                // просим работающий когитатор показаться и ждём подтверждения
                 bool acked = false;
                 try
                 {
@@ -73,7 +71,6 @@ namespace Cogitator
                 }
                 catch { }
                 if (acked) return;
-                // старый когитатор молчит (зависла старая версия или осталась в трее без ответа) — предложить сменить его
                 var me = Process.GetCurrentProcess();
                 var others = Process.GetProcessesByName(me.ProcessName).Where(x => x.Id != me.Id).ToList();
                 if (others.Count == 0 || MessageBox.Show(Loc.T("Работает другой когитатор (возможно, старая версия в трее), и он не отзывается.\n\nУпокоить его и пробудить этот?"), Loc.T("Когитатор"), MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
@@ -110,7 +107,6 @@ namespace Cogitator
         }
     }
 
-    // ============================== ЛОКАЛИЗАЦИЯ ==============================
     static class Loc
     {
         public static bool En;
@@ -128,7 +124,6 @@ namespace Cogitator
             ru2en = a; en2ru = b;
         }
 
-        // перевод: в английском режиме русское → английское; в русском — наоборот (для записей летописи, сделанных на другом языке)
         public static string T(string s)
         {
             if (s == null) return null;
@@ -138,7 +133,6 @@ namespace Cogitator
             return en2ru.TryGetValue(s, out r) ? r : s;
         }
 
-        // приговор с переменной частью («СВЯЗЬ ВОССТАНОВЛЕНА · ПРОСТОЙ 2 МИН 17 С»)
         static readonly string[][] Units = { new[] { " МИН ", " MIN " }, new[] { " Ч ", " H " }, new[] { " С", " S" } };
         public static string TH(string h)
         {
@@ -152,7 +146,6 @@ namespace Cogitator
             return to + rest;
         }
 
-        // начинается ли строка с фразы — на любом из двух языков
         public static bool Starts(string text, string ru)
         {
             if (text == null) return false;
@@ -964,7 +957,35 @@ namespace Cogitator
             "%. Для долгой картины — Ауспик или повтор переклички.",
             " пакетов): реальные потери, скорее всего, ниже ",
             "%. Для долгой картины — Ауспик.",
-            "Виноват провайдер"
+            "Виноват провайдер",
+            "ОКО АУСПИКА НЕ ВЕЛО ДОЗОР ЗА ЭТОТ ПЕРИОД",
+            "ВОЗЗОВИ АУСПИК НА ТЕРМИНАЛЕ — ОН БУДЕТ ТИХО СЛЕДИТЬ ЗА СВЯЗЬЮ И ВЕСТИ ДНЕВНИК ПО МИНУТАМ.",
+            "СВЯЗЬ РВЁТСЯ",
+            "ПОТЕРИ В КАНАЛЕ",
+            "ЗАДЕРЖКА СКАЧЕТ",
+            "ЛЁГКИЕ ПОТЕРИ",
+            "ДОЗОР СПОКОЕН",
+            "НАБЛЮДЕНИЕ: ",
+            " МИН ЗАПИСАНО",
+            " (С ПЕРЕРЫВАМИ)",
+            "ДОСТУПНОСТЬ ",
+            " · ОБРЫВОВ ",
+            " · БЕЗ СВЯЗИ ",
+            " МИН",
+            "ПОТЕРИ ПАКЕТОВ: ",
+            " (ПО ",
+            " ПАКЕТАМ)",
+            "ЗАДЕРЖКА: МЕДИАНА ",
+            " МС · P95 ",
+            "ДЖИТТЕР (ДРОЖАНИЕ): ",
+            "ТУННЕЛЬ ",
+            " МС · НАПРЯМУЮ ",
+            "ХУДШИЙ ОБРЫВ: ",
+            " МИН С ",
+            "ПИК ЗАДЕРЖКИ: ",
+            " МС В ",
+            "СВОДКА ДОЗОРА АУСПИКА",
+            "ЧАСЫ СУТОК · ПОТЕРИ ПО АУСПИКУ"
         };
 
         static readonly string[] EnS =
@@ -1770,11 +1791,38 @@ namespace Cogitator
             "%. For the long view, use the Auspex or repeat the roll-call.",
             " packets): real loss is most likely below ",
             "%. For the long view, use the Auspex.",
-            "The ISP is at fault"
+            "The ISP is at fault",
+            "THE AUSPEX KEPT NO WATCH IN THIS PERIOD",
+            "SUMMON THE AUSPEX ON THE TERMINAL — IT WILL QUIETLY WATCH THE LINK AND KEEP A PER-MINUTE LOG.",
+            "THE LINK IS BREAKING",
+            "LOSS ON THE LINE",
+            "LATENCY IS JUMPY",
+            "MINOR LOSS",
+            "THE WATCH IS CALM",
+            "WATCH: ",
+            " MIN LOGGED",
+            " (WITH GAPS)",
+            "UPTIME ",
+            " · OUTAGES ",
+            " · DOWN ",
+            " MIN",
+            "PACKET LOSS: ",
+            " (OVER ",
+            " PACKETS)",
+            "LATENCY: MEDIAN ",
+            " MS · P95 ",
+            "JITTER: ",
+            "TUNNEL ",
+            " MS · DIRECT ",
+            "WORST OUTAGE: ",
+            " MIN FROM ",
+            "LATENCY PEAK: ",
+            " MS AT ",
+            "AUSPEX WATCH SUMMARY",
+            "HOURS · LOSS BY AUSPEX"
         };
     }
 
-    // ============================== ТЕМА: CRT-КОГИТАТОР ==============================
     static class Theme
     {
         public static readonly Color Bg = Color.FromArgb(4, 9, 5);
@@ -1791,7 +1839,6 @@ namespace Cogitator
 
         static readonly Dictionary<string, Font> cache = new Dictionary<string, Font>();
 
-        // ---- выбор шрифта: consolas (по умолчанию), courier, fixedsys, dos ----
         [DllImport("gdi32.dll", CharSet = CharSet.Unicode)] static extern int AddFontResourceEx(string name, uint fl, IntPtr res);
         static System.Drawing.Text.PrivateFontCollection pfc;
         static FontFamily pixFam;
@@ -1803,12 +1850,10 @@ namespace Cogitator
             FontKey = key ?? "consolas";
             string res = FontKey == "fixedsys" ? "FSEX.ttf" : FontKey == "dos" ? "CogDOS.ttf" : null;
             if (res == null) return;
-            // уже установлен в системе — берём оттуда
             string sysName = FontKey == "fixedsys" ? "Fixedsys Excelsior" : "Cogitator DOS VGA";
             try { using (var t = new Font(sysName, 10f)) if (t.Name == sysName) { var h = t.Height; pixFam = new FontFamily(sysName); return; } } catch { }
             try
             {
-                // шрифт лежит внутри exe; на время работы выкладывается во временную папку
                 string dir = Path.Combine(Path.GetTempPath(), "Cogitator");
                 Directory.CreateDirectory(dir);
                 string path = Path.Combine(dir, res);
@@ -1817,16 +1862,15 @@ namespace Cogitator
                     var data = new byte[st.Length]; st.Read(data, 0, data.Length);
                     if (!File.Exists(path) || new FileInfo(path).Length != data.Length) File.WriteAllBytes(path, data);
                 }
-                try { AddFontResourceEx(path, 0x10, IntPtr.Zero); } catch { }   // для окон журнала (GDI), только для этого процесса
+                try { AddFontResourceEx(path, 0x10, IntPtr.Zero); } catch { }
                 pfc = new System.Drawing.Text.PrivateFontCollection();
-                pfc.AddFontFile(path);                                            // для отрисовки (GDI+)
+                pfc.AddFontFile(path);
                 pixFam = pfc.Families[0];
-                using (var test = new Font(pixFam, 10f)) { var h = test.Height; }   // проверка, что шрифт живой
+                using (var test = new Font(pixFam, 10f)) { var h = test.Height; }
             }
             catch { pixFam = null; FontKey = "consolas"; }
         }
 
-        // пиксельный шрифт чёток только в родном размере (16 px) и вдвое больше; мелочь остаётся обычным моноширинным
         static Font PixelFont(float size, FontStyle st)
         {
             float px = size * 96f / 72f;
@@ -1903,7 +1947,6 @@ namespace Cogitator
             using (var p = new Pen(c, w)) g.DrawLine(p, x1, y1, x2, y2);
         }
 
-        // двойное перекрестие, как на экранах когитаторов
         public static void Cross(Graphics g, float x, float y, float arm, Color c)
         {
             float o = 3.5f;
@@ -1919,7 +1962,6 @@ namespace Cogitator
                 for (int y = r.Top; y < r.Bottom; y += 3) g.FillRectangle(b, r.Left, y, r.Width, 1);
         }
 
-        // зерно люминофора и строки развёртки в одной текстуре: одна заливка вместо сотен вызовов
         static TextureBrush overlay;
         static TextureBrush OverlayBrush
         {
@@ -1994,7 +2036,6 @@ namespace Cogitator
             }
         }
 
-        // едва заметное зерно люминофора
         public static void PaintGrain(Graphics g, Rectangle r, int ox, int oy)
         {
             var b = GrainBrush;
@@ -2003,7 +2044,6 @@ namespace Cogitator
             g.FillRectangle(b, r);
         }
 
-        // затемнение к краям, как у выпуклого кинескопа
         public static void Vignette(Graphics g, Rectangle r)
         {
             if (r.Width < 10 || r.Height < 10) return;
@@ -2028,10 +2068,8 @@ namespace Cogitator
         public static StringFormat Right = new StringFormat { Alignment = StringAlignment.Far, LineAlignment = StringAlignment.Center };
     }
 
-    // базовая CRT-панель: двойная буферизация, фон, развёртка
     static class TipText
     {
-        // перенос по словам под заданную ширину
         public static List<string> Wrap(Graphics g, IEnumerable<string> lines, Font f, float maxW)
         {
             var res = new List<string>();
@@ -2050,7 +2088,6 @@ namespace Cogitator
             return res;
         }
 
-        // подсказка внутри заданной области: не вылезает за её края
         public static void Draw(Graphics g, RectangleF area, PointF at, IEnumerable<string> lines, Font f, Color border)
         {
             var wl = Wrap(g, lines, f, Math.Max(80, area.Width - 28));
@@ -2088,7 +2125,6 @@ namespace Cogitator
         protected virtual void PaintContent(Graphics g) { }
     }
 
-    // ---------- верхняя полоса ----------
     class TopBar : CrtControl
     {
         public string Status = Loc.T("СИСТЕМА :ГОТОВ");
@@ -2107,10 +2143,11 @@ namespace Cogitator
             var sb = new RectangleF(r.Right - bw - 18, r.Y + (r.Height - bh) / 2, bw, bh);
             Theme.Box(g, sb, StatusColor, 1.4f);
             Theme.Glow(g, Status, f, StatusColor, sb, Theme.Center);
+            using (var vb = new SolidBrush(Theme.GreenDim))
+                g.DrawString("v" + Program.Version, Theme.Mono(8f, FontStyle.Bold), vb, new RectangleF(sb.X - 86, sb.Y, 80, bh), Ui.NoWrapRight);
         }
     }
 
-    // ---------- эмблема + часы ----------
     class EmblemPanel : CrtControl
     {
         public float Angle;
@@ -2132,7 +2169,6 @@ namespace Cogitator
 
             var c = new PointF(box.X + box.Width * 0.36f, box.Y + box.Height / 2 + 6);
             float R = Math.Min(box.Width * 0.34f, box.Height / 2 - 20);
-            // помехи на экране сонара: редкие искры и полоса шума
             for (int i = 0; i < 46; i++)
             {
                 double a = noise.NextDouble() * Math.PI * 2, d = Math.Sqrt(noise.NextDouble()) * R;
@@ -2145,21 +2181,18 @@ namespace Cogitator
                 using (var pen = new Pen(Color.FromArgb(22 + noise.Next(20), Theme.Green), 1f)) g.DrawLine(pen, c.X - half, ny, c.X + half, ny);
             }
             int n = Math.Max(4, hops.Count);
-            // кольца прыжков
             for (int i = 1; i <= n; i++)
             {
                 float rr = R * i / n;
                 using (var pen = new Pen(Color.FromArgb(i == n ? 70 : 34, Theme.Green), 1f)) g.DrawEllipse(pen, c.X - rr, c.Y - rr, rr * 2, rr * 2);
             }
             using (var pen = new Pen(Color.FromArgb(28, Theme.Green), 1f)) { g.DrawLine(pen, c.X - R, c.Y, c.X + R, c.Y); g.DrawLine(pen, c.X, c.Y - R, c.X, c.Y + R); }
-            // луч и его шлейф
             float sweep = (Angle * 57.3f) % 360f;
             for (int t = 0; t < 14; t++)
             {
                 float a = (sweep - t * 3) * (float)Math.PI / 180f;
                 using (var pen = new Pen(Color.FromArgb(Math.Max(0, 90 - t * 6), Theme.Green), 2f)) g.DrawLine(pen, c.X, c.Y, c.X + (float)Math.Cos(a) * R, c.Y + (float)Math.Sin(a) * R);
             }
-            // центр — ты
             using (var b = new SolidBrush(Theme.Red)) g.FillEllipse(b, c.X - 3.5f, c.Y - 3.5f, 7, 7);
 
             string hover = null; Color hoverC = Theme.Green; PointF hoverP = PointF.Empty;
@@ -2172,12 +2205,10 @@ namespace Cogitator
                 double loss = h.Hist.Count > 0 ? 100.0 * (h.Hist.Count - ok.Count) / h.Hist.Count : 0;
                 bool silent = h.Addr == null || ok.Count == 0;
                 Color col = silent ? Theme.GreenDim : loss >= 30 ? Theme.Red : loss >= 10 ? Theme.Amber : Theme.Green;
-                // вспышка, когда луч проходит над отметкой
                 float da = ((sweep - (-90 + i * 360f / n)) % 360 + 360) % 360;
                 int glow = silent ? 150 + noise.Next(50) - (int)(Math.Min(1f, da / 240f) * 40) : (int)(255 - Math.Min(1f, da / 240f) * 150);
                 if (silent)
                 {
-                    // призрак: мерцающее пунктирное кольцо со знаком вопроса
                     using (var b = new SolidBrush(Color.FromArgb(28, Theme.GreenMid))) g.FillEllipse(b, p.X - 7, p.Y - 7, 14, 14);
                     using (var pen = new Pen(Color.FromArgb(glow, Theme.GreenMid), 1.3f) { DashStyle = DashStyle.Dash }) g.DrawEllipse(pen, p.X - 6, p.Y - 6, 12, 12);
                     using (var b = new SolidBrush(Color.FromArgb(glow, Theme.GreenMid))) g.DrawString("?", Theme.Mono(7f, FontStyle.Bold), b, p.X - 4, p.Y - 6);
@@ -2196,7 +2227,6 @@ namespace Cogitator
                 }
             }
 
-            // справа — сводка
             float tx = box.X + box.Width * 0.70f, ty = box.Y + 30;
             var sf = Theme.Mono(7.5f, FontStyle.Bold);
             var tgt = reach > 0 && hops.Count >= reach ? hops[reach - 1] : null;
@@ -2223,11 +2253,10 @@ namespace Cogitator
         }
     }
 
-    // ---------- шифрованное сообщение (правая колонка) ----------
     class MessagePanel : CrtControl
     {
         List<KeyValuePair<string, Color>> lines = new List<KeyValuePair<string, Color>>();
-        List<int> shown = new List<int>();   // сколько символов каждой строки уже «напечатано»
+        List<int> shown = new List<int>();
         readonly System.Windows.Forms.Timer typer;
         int blink, step;
 
@@ -2239,12 +2268,11 @@ namespace Cogitator
                 blink++; step++;
                 int i = Typing;
                 if (i < 0) { typer.Stop(); Invalidate(); return; }
-                shown[i] = Math.Min(lines[i].Key.Length, shown[i] + 2 + (step % 7 == 0 ? 0 : 1));   // неровный темп, как у телетайпа
+                shown[i] = Math.Min(lines[i].Key.Length, shown[i] + 2 + (step % 7 == 0 ? 0 : 1));
                 Invalidate();
             };
         }
 
-        // первая недопечатанная строка (или -1)
         int Typing { get { for (int i = 0; i < lines.Count; i++) if (shown[i] < lines[i].Key.Length) return i; return -1; } }
 
         public void Set(params object[] pairs)
@@ -2253,7 +2281,6 @@ namespace Cogitator
             for (int i = 0; i + 1 < pairs.Length; i += 2)
                 if (pairs[i] != null && ((string)pairs[i]).Length > 0)
                     nl.Add(new KeyValuePair<string, Color>((string)pairs[i], (Color)pairs[i + 1]));
-            // каждая строка сама по себе: неизменные остаются как есть, у изменённых допечатывается только новый хвост
             var ns = new List<int>();
             for (int i = 0; i < nl.Count; i++)
             {
@@ -2278,7 +2305,6 @@ namespace Cogitator
             int typing = Typing;
             for (int i = 0; i < lines.Count; i++)
             {
-                // строки ниже печатаемой и ещё не начатые — не показываем
                 if (typing >= 0 && i > typing && shown[i] == 0) break;
                 var kv = lines[i];
                 string full = kv.Key;
@@ -2297,7 +2323,6 @@ namespace Cogitator
         }
     }
 
-    // ---------- кнопка-ритуал ----------
     class CrtButton : CrtControl
     {
         public string Num, Title, Sub;
@@ -2326,7 +2351,6 @@ namespace Cogitator
             Color bc = !en ? Color.FromArgb(22, 58, 30) : hover ? Theme.Green : Theme.GreenMid;
             Theme.Box(g, r, bc, 1.4f);
 
-            // оранжевые уголки
             Color oc = en ? Theme.Orange : Color.FromArgb(70, 40, 20);
             float k = 7;
             Theme.Line(g, oc, r.X, r.Y, r.X + k, r.Y, 1.6f); Theme.Line(g, oc, r.X, r.Y, r.X, r.Y + k, 1.6f);
@@ -2353,7 +2377,6 @@ namespace Cogitator
         }
     }
 
-    // ---------- осциллограф пинга ----------
     class Scope : CrtControl
     {
         const int Max = 160;
@@ -2365,7 +2388,6 @@ namespace Cogitator
         public void Add(double v) { lock (lk) { data.Add(v); if (data.Count > Max) data.RemoveAt(0); } }
         public void Clear() { lock (lk) data.Clear(); }
 
-        // ---- режим трафика: что идёт по сети прямо сейчас ----
         public bool TrafficMode = true;
         public string Source = "—";
         List<double> down = new List<double>(), up = new List<double>();
@@ -2384,9 +2406,8 @@ namespace Cogitator
 
         public void ClearTraffic() { lock (lk) { down.Clear(); up.Clear(); } curDown = curUp = -1; }
 
-        // ---- режим карты пути: итог ритуала III / IV цепочкой узлов ----
         public List<Diag.Leg> Legs;
-        public int Mode;   // 0 — трафик, 1 — пинг ритуала, 2 — карта пути
+        public int Mode;
         class PHit { public RectangleF R; public string[] Lines; public Color C; }
         List<PHit> phits = new List<PHit>();
         Point pmouse = new Point(-1, -1);
@@ -2410,7 +2431,6 @@ namespace Cogitator
                 using (var b = new SolidBrush(Theme.Orange)) g.DrawString(name, lf, b, row.X, row.Y + row.Height / 2 - 6);
                 float cx0 = row.X + 108, cw = row.Right - cx0 - 6;
                 float cy = row.Y + row.Height * 0.58f;
-                // участки: владелец + автономная система
                 var cl = new List<List<Hop>>();
                 foreach (var h in lg.Hops)
                 {
@@ -2419,7 +2439,7 @@ namespace Cogitator
                     if (c == null || c[0].Own != h.Own || (h.Asn != null && ca != null && h.Asn != ca)) cl.Add(new List<Hop> { h }); else c.Add(h);
                 }
                 bool tailFog = !lg.Reached && (lg.Hidden || lg.Problem);
-                int slots = lg.Hops.Count + (tailFog ? 2 : 0) + 1;   // +1 — сам дом/начало
+                int slots = lg.Hops.Count + (tailFog ? 2 : 0) + 1;
                 if (lg.Hops.Count == 0)
                 {
                     var fr = new RectangleF(cx0, cy - 12, cw, 24);
@@ -2429,7 +2449,6 @@ namespace Cogitator
                     continue;
                 }
                 float step = cw / Math.Max(2, slots);
-                // исток
                 float x0s = cx0 + step * 0.5f;
                 using (var b = new SolidBrush(Theme.GreenMid)) g.FillRectangle(b, x0s - 4, cy - 4, 8, 8);
                 using (var b = new SolidBrush(Theme.GreenDim)) g.DrawString(lg.Tunnel ? Loc.T("ТУННЕЛЬ") : Loc.T("ТЫ"), Theme.Mono(6.5f, FontStyle.Bold), b, x0s - 14, cy + 8);
@@ -2468,13 +2487,11 @@ namespace Cogitator
                 }
                 else if (lg.Reached)
                 {
-                    // импульс бежит по цепи — сеть жива
                     float run = (Phase * 0.35f) % 1f;
                     float px = cx0 + step * 0.5f + (prevX - cx0 - step * 0.5f) * run;
                     using (var b = new SolidBrush(Color.FromArgb(160, Theme.Orange))) g.FillEllipse(b, px - 2.5f, cy - 2.5f, 5, 5);
                 }
             }
-            // подсказка — с переносом и в пределах модуля
             if (pmouse.X >= 0)
             {
                 var h = phits.LastOrDefault(x => x.R.Contains(pmouse));
@@ -2499,7 +2516,6 @@ namespace Cogitator
         {
             if (LabelRect.Contains(e.Location))
             {
-                // трафик → пинг ритуала → карта пути (если есть) → трафик
                 int m = TrafficMode ? 0 : Mode == 2 ? 2 : 1;
                 m = (m + 1) % 3; if (m == 2 && (Legs == null || Legs.Count == 0)) m = 0;
                 Mode = m; TrafficMode = m == 0; Invalidate();
@@ -2561,11 +2577,10 @@ namespace Cogitator
                 var pd = new PointF[dn.Count]; var pu = new PointF[upl.Count];
                 for (int i = 0; i < dn.Count; i++)
                 {
-                    float x = plot.Right - (dn.Count - 1 - i) * step;   // свежие данные справа, история уезжает влево
+                    float x = plot.Right - (dn.Count - 1 - i) * step;
                     pd[i] = new PointF(x, plot.Bottom - (float)(plot.Height * Math.Min(1.0, dn[i] / top)));
                     pu[i] = new PointF(x, plot.Bottom - (float)(plot.Height * Math.Min(1.0, upl[i] / top)));
                 }
-                // заливка под приёмом
                 var area = new PointF[pd.Length + 2];
                 Array.Copy(pd, area, pd.Length);
                 area[pd.Length] = new PointF(pd[pd.Length - 1].X, plot.Bottom);
@@ -2578,7 +2593,6 @@ namespace Cogitator
             }
             else Theme.Glow(g, Loc.T("НАСТРАИВАЮСЬ НА ПОТОК..."), Theme.Mono(9f, FontStyle.Bold), Theme.GreenDim, plot, Theme.Center);
 
-            // легенда
             float lx = plot.X + 120, ly = plot.Y + 4;
             using (var b = new SolidBrush(Theme.Green)) g.FillRectangle(b, lx, ly + 5, 12, 3);
             using (var b = new SolidBrush(Theme.GreenMid)) g.DrawString(Loc.T("ПРИЁМ"), Theme.Mono(7.5f, FontStyle.Bold), b, lx + 16, ly);
@@ -2660,7 +2674,6 @@ namespace Cogitator
                 flush();
             }
 
-            // показания справа
             var last = d.Skip(Math.Max(0, d.Count - 20)).ToList();
             var ok = last.Where(v => v >= 0).ToList();
             string ping = ok.Count > 0 ? Math.Round(ok.Average()).ToString() : "---";
@@ -2678,14 +2691,12 @@ namespace Cogitator
             Theme.Glow(g, label, lf, Theme.Orange, new RectangleF(at.X, at.Y, at.Width, 16), Theme.Right);
             var vb = new RectangleF(at.X, at.Y + 17, at.Width, 24);
             Theme.Box(g, vb, Theme.Green, 1.4f);
-            // крупно, если влезает; иначе мельче; если и так не влезает — обрезать в одну строку
             var vf = Theme.Mono(val.Length > 12 ? 9f : 11.5f, FontStyle.Bold);
             if (g.MeasureString(val, vf).Width > vb.Width - 8) vf = Theme.Mono(7.5f, FontStyle.Bold);
             Theme.Glow(g, val, vf, vc, new RectangleF(vb.X + 4, vb.Y, vb.Width - 8, vb.Height), Ui.NoWrapCenter);
         }
     }
 
-    // ---------- рамка журнала с перекрестиями ----------
     class LogFrame : Panel
     {
         public string Mode = "—";
@@ -2720,7 +2731,6 @@ namespace Cogitator
         }
     }
 
-    // поле ввода в зелёной рамке
     class CrtField : Panel
     {
         public TextBox Box;
@@ -2748,7 +2758,6 @@ namespace Cogitator
         }
     }
 
-    // ============================== ВЕРДИКТ ==============================
     class Verdict
     {
         public string Headline, Side;
@@ -2767,13 +2776,11 @@ namespace Cogitator
 
     enum Owner { None, Router, Provider, Transit, Server, Target, Beyond, Outer }
 
-    // ============================== ДИАГНОСТИКА ==============================
     class Diag
     {
         [DllImport("iphlpapi.dll")] static extern int GetBestInterface(uint dwDestAddr, out uint pdwBestIfIndex);
         [DllImport("iphlpapi.dll")] static extern int SendARP(uint destIp, uint srcIp, byte[] mac, ref int macLen);
 
-        // ARP работает ниже IP — kill switch и брандмауэр его не режут, поэтому это честная проверка «роутер жив»
         static string ArpMac(string ip, string src)
         {
             try
@@ -2796,7 +2803,7 @@ namespace Cogitator
         static readonly string[] HttpsUrls = { "https://www.gstatic.com/generate_204", "https://ya.ru" };
 
         readonly string serverCfg, pattern; string isp; readonly int sshPort;
-        public string DetectedIsp;   // имя сети провайдера, узнанное по ходу ритуала
+        public string DetectedIsp;
         string IspSfx { get { return string.IsNullOrEmpty(isp) ? "" : " (" + isp + ")"; } }
         void LearnIsp(string asn) { var n = AsName(asn); if (n != null) { DetectedIsp = n; isp = n; } }
         readonly Action<string, string> L; readonly Action<string> S;
@@ -2817,7 +2824,6 @@ namespace Cogitator
             serverCfg = (server ?? "").Trim(); sshPort = ssh; this.pattern = pattern; this.isp = isp; L = log; S = sec;
         }
 
-        // быстрый опрос святилища для реестра
         public string Probe(out Color c)
         {
             FindPhys();
@@ -2847,7 +2853,6 @@ namespace Cogitator
             }
         }
 
-        // ---------- helpers ----------
         public static Action<string, double> Sampler;
         [ThreadStatic] public static bool NoSample;
 
@@ -2973,7 +2978,6 @@ namespace Cogitator
             catch { ms = sw.ElapsedMilliseconds; return false; }
         }
 
-        // TCP с привязкой к IP физического адаптера: Windows отправит пакеты через этот адаптер, мимо туннеля
         static bool TcpOkVia(string host, int port, int timeout, string src)
         {
             try
@@ -3005,7 +3009,6 @@ namespace Cogitator
             }
         }
 
-        // ping в обход туннеля: ping.exe -S <IP физического адаптера>
         static PingRes PingVia(string target, int count, string src)
         {
             var res = new PingRes { Target = target, Sent = count };
@@ -3037,7 +3040,6 @@ namespace Cogitator
             }
             if (!directOk && !killSwitch && !gwArp && gwIp != null)
             {
-                // роутер жив, а ping/TCP до него закрыты — значит, всё мимо туннеля режет kill switch
                 bool gwOpen = false;
                 foreach (var port in new[] { 80, 443, 53 }) if (TcpOk(gwIp, port, 1200)) { gwOpen = true; break; }
                 if (!gwOpen) { gwMac = ArpMac(gwIp, myIp); if (gwMac != null) gwArp = true; }
@@ -3122,7 +3124,6 @@ namespace Cogitator
             vpnNi = Tun.Find(pattern, out anyKnown) ?? anyKnown;
             sysProxy = Tun.SystemProxy();
             vpnUp = vpnNi != null && vpnNi.OperationalStatus == OperationalStatus.Up;
-            // кандидаты: включённые адаптеры со шлюзом; виртуальные (Hyper-V, VirtualBox, VMware…) — в конец очереди
             int bestIdx = -1;
             try { uint bi; if (GetBestInterface(BitConverter.ToUInt32(IPAddress.Parse("8.8.8.8").GetAddressBytes(), 0), out bi) == 0) bestIdx = (int)bi; } catch { }
             int bestScore = int.MinValue;
@@ -3167,7 +3168,6 @@ namespace Cogitator
             return null;
         }
 
-        // ---------- I. Локальная сеть ----------
         void CheckLocal()
         {
             S(Loc.T("I. ДОМАШНИЙ АЛТАРЬ — ты → роутер"));
@@ -3189,7 +3189,6 @@ namespace Cogitator
             }
             gw = PingStats(gwIp, 20, 1000, 32, false, 50);
             if (gw.Recv > 0) { ShowPing(Loc.T("Роутер"), gw, isWifi ? 30 : 10); return; }
-            // на ping молчит — проверяем, жив ли он по TCP (веб-интерфейс, DNS)
             foreach (var port in new[] { 80, 443, 53 })
                 if (TcpOk(gwIp, port, 1500)) { gwSilent = true; gwPort = port; break; }
             if (gwSilent)
@@ -3214,7 +3213,6 @@ namespace Cogitator
             }
         }
 
-        // ---------- II. Интернет ----------
         void CheckInternet()
         {
             S(Loc.T("II. ВНЕШНИЕ МИРЫ — интернет"));
@@ -3272,7 +3270,6 @@ namespace Cogitator
             if (internetOk) CheckResources();
         }
 
-        // ---------- Врата ресурсов ----------
         static readonly string[][] Resources =
         {
             new[] { Loc.T("Яндекс"), "https://ya.ru" },
@@ -3356,7 +3353,6 @@ namespace Cogitator
             resResults = list;
         }
 
-        // ---------- Замер скорости ----------
         void CheckSpeed()
         {
             if (!internetOk) return;
@@ -3364,7 +3360,6 @@ namespace Cogitator
             FindPhys();
             if (vpnUp)
             {
-                // на линиях с ТСПУ крупная загрузка через туннель сама провоцирует удушение VPN — когитатор не должен рвать связь своими руками
                 L("info", Loc.T("При включённом VPN замер скорости не проводится: на линиях с ТСПУ крупная загрузка через туннель сама провоцирует его удушение и обрыв. Скорость через VPN — вратами с замером скорости, по твоей воле."));
                 return;
             }
@@ -3414,7 +3409,6 @@ namespace Cogitator
             L("warn", Loc.T("Замер скорости не удался: ни один источник не отдал данные."));
         }
 
-        // ---------- III. VPN ----------
         void CheckVpn()
         {
             S(Loc.T("III. СВЯТИЛИЩЕ VPN"));
@@ -3443,11 +3437,9 @@ namespace Cogitator
             }
 
             long[] b1 = vpnUp ? IfBytes(vpnNi.Id) : null;
-            // 30 пакетов, а не 5: один вернувшийся пакет ещё не значит, что туннель здоров
             var pr = PingStats("1.1.1.1", 8, 1000, 32, false, 120);
             if (pr.Recv > 0)
             {
-                // канал отвечает — добираем до 30 пакетов для честного процента потерь
                 var more = PingStats("1.1.1.1", 22, 1000, 32, false, 120);
                 var lost = (pr.Sent - pr.Recv) + (more.Sent - more.Recv);
                 double avg = more.Recv > 0 ? Math.Round((pr.Avg * pr.Recv + more.Avg * more.Recv) / (pr.Recv + more.Recv), 1) : pr.Avg;
@@ -3489,7 +3481,6 @@ namespace Cogitator
             sshOk = Bypass ? TcpOkVia(serverIp, sshPort, 3000, myIp) : TcpOk(serverIp, sshPort, 3000);
             if (Bypass && tunnelAlive && srv.Recv == 0 && !sshOk)
             {
-                // туннель получает ответы от сервера — значит, сервер жив; мимо туннеля его просто не видно
                 L("info", Loc.T("Пинг и SSH до сервера в обход туннеля не проходят — скорее всего, их закрывает kill switch. Туннель при этом живой и получает ответы, значит сам сервер работает."));
                 serverReachable = true;
             }
@@ -3511,7 +3502,6 @@ namespace Cogitator
             }
         }
 
-        // ---------- IV. pathping ----------
         Owner HopOwner(int num, string addr, bool isTarget)
         {
             if (pathViaTunnel)
@@ -3541,7 +3531,6 @@ namespace Cogitator
             }
         }
 
-        // ---------- кому принадлежит узел: номер автономной системы через DNS Team Cymru ----------
         static readonly Dictionary<string, string> asnCache = new Dictionary<string, string>(), asNameCache = new Dictionary<string, string>();
 
         static string DnsTxt(string name, int timeoutMs)
@@ -3621,7 +3610,6 @@ namespace Cogitator
             return n;
         }
 
-        // одна трасса pathping, без вывода в журнал
         List<Hop> RunPathping(string target, string src)
         {
             var lines = new List<string>();
@@ -3649,7 +3637,6 @@ namespace Cogitator
             return res;
         }
 
-        // разметка узлов по владельцам: дом → провайдер → магистраль → хостер (или: святилище → хостер → дальняя магистраль → цель)
         void Classify(List<Hop> hs, string target, bool viaTunnel, string serverAsn)
         {
             Parallel.ForEach(hs.Where(h => !Regex.IsMatch(h.Addr, PrivateRx)).Select(h => h.Addr).Distinct().ToList(), new ParallelOptions { MaxDegreeOfParallelism = 6 }, ip => AsnOf(ip));
@@ -3678,7 +3665,7 @@ namespace Cogitator
                     bool priv = Regex.IsMatch(h.Addr, PrivateRx);
                     if (h.Addr == target) h.Own = serverIp != null && target == serverIp ? Owner.Server : Owner.Target;
                     else if (h.Addr == gwIp || (h.Num == 1 && priv)) h.Own = Owner.Router;
-                    else if (priv) h.Own = seenPublic ? Owner.Transit : Owner.Provider;   // серые адреса до первого белого — внутренняя сеть провайдера (CGNAT)
+                    else if (priv) h.Own = seenPublic ? Owner.Transit : Owner.Provider;
                     else if (h.Asn == null) h.Own = h.Num <= 3 ? Owner.Provider : Owner.Transit;
                     else if (h.Asn == ispAsn) h.Own = Owner.Provider;
                     else if (serverAsn != null && h.Asn == serverAsn) h.Own = Owner.Server;
@@ -3689,7 +3676,7 @@ namespace Cogitator
             foreach (var h in hs) if (h.Asn != null) h.AsName = AsName(h.Asn);
         }
 
-        bool pathNetOk;   // связь до интернета есть (по туннелю или напрямую) — тогда молчание узлов не обрыв
+        bool pathNetOk;
         public List<Leg> Legs;
         public class Leg { public string Title, Target; public bool Tunnel, Blocked, Problem, Reached, Hidden; public List<Hop> Hops = new List<Hop>(); public Owner Own = Owner.None; public string Text; public Hop Origin; }
 
@@ -3715,12 +3702,10 @@ namespace Cogitator
             {
                 if (!lg.Tunnel && serverIp != null && lg.Target == serverIp && sshOk)
                 { lg.Text = Loc.T("Трасса не доходит до сервера по ICMP, но сервер отвечает по TCP — он просто игнорирует ping/трассировку, это нормально."); return; }
-                // следующий участок после последнего ответившего узла
                 lg.Own = last.Own == Owner.Router ? Owner.Provider : last.Own == Owner.Provider ? Owner.Transit
                        : last.Own == Owner.Server ? (lg.Tunnel ? Owner.Beyond : Owner.Server) : last.Own == Owner.Beyond ? Owner.Outer : last.Own;
                 if (pathNetOk)
                 {
-                    // связь есть — значит, дальше узлы просто молчат на ICMP, а не рвут трафик
                     lg.Hidden = true;
                     lg.Text = (lg.Tunnel && last.Own == Owner.Server
                         ? Loc.T("Трасса видна только до святилища: узлы за ним не отвечают на ICMP (сервер не пропускает служебные ответы трассировки). Интернет через туннель при этом работает — обрыва нет.")
@@ -3768,7 +3753,6 @@ namespace Cogitator
         {
             S(lg.Title);
             if (lg.Hops.Count == 0) { L(lg.Problem ? "fail" : "info", lg.Text); return; }
-            // участки: подряд идущие узлы одного владельца и одной автономной системы
             var cl = new List<List<Hop>>();
             foreach (var h in lg.Hops)
             {
@@ -3813,7 +3797,6 @@ namespace Cogitator
             if (serverIp != null && !sshOk) sshOk = Bypass ? TcpOkVia(serverIp, sshPort, 3000, myIp) : TcpOk(serverIp, sshPort, 3000);
             pathNetOk = pathViaTunnel || (!vpnUp && (internetOk || PingStats("1.1.1.1", 3, 1000, 32, false, 100).Recv > 0 || TcpOk("1.1.1.1", 443, 2000)));
 
-            // участок А — от дома до святилища мимо туннеля; участок Б — через туннель за святилище
             var legs = new List<Leg>();
             if (serverIp != null || !pathViaTunnel)
                 legs.Add(new Leg { Target = serverIp ?? "1.1.1.1", Tunnel = false,
@@ -3850,7 +3833,6 @@ namespace Cogitator
             else { ppProblem = false; ppText = string.Join(" ", legs.Select(l => l.Text)); ppHidden = legs.All(l => l.Hidden || !l.Reached); }
         }
 
-        // ---------- V. MTU ----------
         void CheckMtu()
         {
             S(Loc.T("V. МЕРА СОСУДА — MTU"));
@@ -3865,7 +3847,6 @@ namespace Cogitator
             else L("warn", Loc.T("MTU пути: ") + mtu + Loc.T(" — меньше 1500 (PPPoE у провайдера / туннель)"));
         }
 
-        // ---------- ПРИГОВОРЫ ----------
         static Verdict V(string head, string side, Color c, params string[] tips)
         {
             var v = new Verdict { Headline = head, Side = side, Color = c };
@@ -3977,7 +3958,6 @@ namespace Cogitator
         static readonly string TspuServerCheck = Loc.T("Исключи сервер: по SSH sudo docker ps — контейнер amnezia-awg должен быть Up. Если Up — сервер ни при чём.");
         static readonly string TspuMobile = Loc.T("Контрольный опыт: подключись к VPN через мобильный интернет. Работает там — режут на домашней линии.");
 
-        // VPN включён, а через туннель интернета нет
         Verdict TunnelDownVerdict()
         {
             if (directKnown && !directOk && killSwitch)
@@ -4100,7 +4080,6 @@ namespace Cogitator
                 Loc.T("Впиши адрес сервера сверху, чтобы проверять и само святилище."));
         }
 
-        // ---------- V. Перекличка пакетов ----------
         PingRes lossRes; double lossPct, lossEff; int lossMaxStreak, lossBursts, lossEffLost, lossEffSent; string lossNote;
 
         void CheckLoss()
@@ -4147,7 +4126,6 @@ namespace Cogitator
             }
             lossRes = new PingRes { Target = Loc.T("3 узла"), Sent = sent };
             FillStats(lossRes, times);
-            // джиттер считаем внутри каждого узла: узлы стоят на разном расстоянии, и разница между ними — не дрожание канала
             double jSum = 0; int jCnt = 0;
             for (int k = 0; k < 3; k++)
             {
@@ -4157,7 +4135,6 @@ namespace Cogitator
             lossRes.Jitter = jCnt > 0 ? Math.Round(jSum / jCnt, 1) : 0;
             lossPct = Math.Round(100.0 * lost / Math.Max(1, sent), 1);
 
-            // если пакеты теряет только один узел — это он режет ICMP, а не твой канал
             lossEff = lossPct; lossEffLost = lost; lossEffSent = sent;
             for (int k = 0; k < 3; k++)
             {
@@ -4192,7 +4169,6 @@ namespace Cogitator
             L(lossEff >= 3 ? "fail" : lossEff > 0 ? "warn" : "ok", Loc.T("Итог: потери ") + lossEff + "%" + (lossEff != lossPct ? Loc.T(" (с учётом узла-молчуна; сырые ") + lossPct + "%)" : ""));
         }
 
-        // 95% доверительный интервал Уилсона для доли потерь, в процентах
         static void Wilson(int x, int n, out double lo, out double hi)
         {
             lo = hi = 0; if (n <= 0) return;
@@ -4287,7 +4263,6 @@ namespace Cogitator
 
 
 
-    // ============================== ХРАНИЛИЩЕ ==============================
     class Sanctum
     {
         public string Name = "", Addr = "", Note = "";
@@ -4302,7 +4277,7 @@ namespace Cogitator
         public int Ritual, Seconds;
         public char Key;
         public DateTime When;
-        public double Loss = -2, Ping = -2;   // -2: ещё не разобрано, -1: нет данных
+        public double Loss = -2, Ping = -2;
         public Color Color { get { return Key == 'g' ? Theme.Green : Key == 'a' ? Theme.Amber : Theme.Red; } }
     }
 
@@ -4319,7 +4294,7 @@ namespace Cogitator
         public static string Lang = "";
         public static int HudX = -1, HudY = -1;
         public static int HudOpacity = 90;
-        public static bool Glitch = true, Scan = false;   // проценты, 25…100
+        public static bool Glitch = true, Scan = false;
         public static List<Sanctum> Sanctums = new List<Sanctum>();
         public static List<Gate> Gates = new List<Gate>();
         public static List<string> AuspexGates = new List<string>();
@@ -4354,7 +4329,6 @@ namespace Cogitator
                 }
             }
             catch { }
-            // первый запуск — несколько врат из пресетов, чтобы было с чего начать
             foreach (int i in new[] { 0, 3, 4, 10 })
             {
                 var pr = GateCheck.Presets[i];
@@ -4367,7 +4341,6 @@ namespace Cogitator
 
         static string Esc(string s) { return (s ?? "").Replace("\t", " ").Replace("\r", " ").Replace("\n", " "); }
 
-        // язык нужно знать до создания окна: читаем только его
         public static string FontChoice = "fixedsys";
         public static void LoadLang()
         {
@@ -4380,7 +4353,7 @@ namespace Cogitator
             }
             catch { }
             if (Lang != "ru" && Lang != "en")
-                Lang = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ru" ? "ru" : "en";   // первый запуск — по языку Windows
+                Lang = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ru" ? "ru" : "en";
             Loc.En = Lang == "en";
         }
 
@@ -4397,7 +4370,7 @@ namespace Cogitator
                         if (k == "server") legacyServer = v;
                         else if (k == "sshport") legacyPort = v;
                         else if (k == "adapter_pattern" && v.Length > 0) Pattern = v == "Amnezia|AmneziaWG|WireGuard|Wintun|awg" ? "" : v;
-                        else if (k == "isp" && v.Length > 0 && v != "SkyNet") Isp = v;   // «SkyNet» был зашит по умолчанию — теперь имя узнаётся само
+                        else if (k == "isp" && v.Length > 0 && v != "SkyNet") Isp = v;
                         else if (k == "active") Active = v;
                         else if (k == "guardian") Guard = v == "1";
                         else if (k == "hud") Hud = v == "1";
@@ -4426,7 +4399,6 @@ namespace Cogitator
             }
             catch { }
 
-            // перенос адреса из старой версии
             if (Sanctums.Count == 0 && legacyServer.Length > 0)
             {
                 int port; if (!int.TryParse(legacyPort, out port)) port = 22;
@@ -4497,7 +4469,6 @@ namespace Cogitator
 
         static double Num(string s) { double v; return double.TryParse(s.Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out v) ? v : -1; }
 
-        // вытаскиваем потери и пинг из текста отчёта
         public static void ParseMetrics(ChronEntry e, string text)
         {
             e.Loss = -1; e.Ping = -1;
@@ -4560,7 +4531,6 @@ namespace Cogitator
         }
     }
 
-    // ============================== АВТОЗАПУСК ==============================
     static class Autostart
     {
         const string RunKey = @"Software\Microsoft\Windows\CurrentVersion\Run", Name = "Cogitator";
@@ -4589,7 +4559,6 @@ namespace Cogitator
             catch (Exception ex) { return ex.Message; }
         }
 
-        // если exe переложили в другую папку — поправить путь в автозапуске
         public static void Refresh()
         {
             try
@@ -4604,12 +4573,10 @@ namespace Cogitator
         }
     }
 
-    // ============================== СТРАЖ ==============================
     class GuardResult { public bool Ok, VpnUp; public string VpnName, Via; public long Ms; }
 
     static class Guardian
     {
-        // минимальная проверка: первый ответивший узел, затем HTTPS на случай запрета ICMP
         public static GuardResult Check(string pattern)
         {
             var r = new GuardResult();
@@ -4643,7 +4610,6 @@ namespace Cogitator
         }
     }
 
-    // тёмное меню значка в трее
     class CrtMenuColors : ProfessionalColorTable
     {
         public override Color ToolStripDropDownBackground { get { return Theme.BgLog; } }
@@ -4657,9 +4623,6 @@ namespace Cogitator
         public override Color SeparatorLight { get { return Theme.BgLog; } }
     }
 
-    // ============================== АВТОПОИСК СВЯТИЛИЩ ==============================
-    // Ищет адреса VPN-серверов там, где их оставляют клиенты WireGuard / AmneziaWG / AmneziaVPN:
-    // службы туннелей и их конфиги, файлы в папках Amnezia, настройки в реестре.
     static class AutoDetect
     {
         public class Found { public string Host, Name, Source; public int Port = 22; }
@@ -4677,7 +4640,6 @@ namespace Cogitator
             var found = new List<Found>();
             int files = 0, values = 0, services = 0;
 
-            // 1. службы туннелей и их конфиги
             try
             {
                 using (var svcs = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Services"))
@@ -4699,7 +4661,6 @@ namespace Cogitator
             catch { }
             log.Add(Loc.T("службы туннелей: ") + services);
 
-            // 2. файлы в папках Amnezia
             var roots = new[]
             {
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -4723,7 +4684,6 @@ namespace Cogitator
             }
             log.Add(Loc.T("просмотрено файлов: ") + files);
 
-            // 3. настройки в реестре (QSettings клиента AmneziaVPN)
             try
             {
                 using (var sw = Registry.CurrentUser.OpenSubKey("Software"))
@@ -4827,7 +4787,6 @@ namespace Cogitator
         }
     }
 
-    // ============================== КАРКАСЫ СТРАНИЦ ==============================
     class PagePanel : Panel
     {
         public PagePanel()
@@ -4899,7 +4858,6 @@ namespace Cogitator
         }
     }
 
-    // ---------- навигация ----------
     class NavBar : CrtControl
     {
         public string[] Tabs = { Loc.T("ТЕРМИНАЛ"), Loc.T("СВЯТИЛИЩА"), Loc.T("ИСПЫТАНИЯ"), Loc.T("ЛЕТОПИСЬ"), Loc.T("ВРАТА") };
@@ -4961,7 +4919,6 @@ namespace Cogitator
                 if (i == 2 && Busy && (Blink / 5) % 2 == 0)
                     using (var b = new SolidBrush(Theme.Orange)) g.FillEllipse(b, r.Right - 16, r.Y + r.Height / 2 - 4, 8, 8);
             }
-            // переключатель языка: активный — ярко, второй — приглушённо
             var lr = LangRect;
             Theme.Box(g, lr, langHover ? Theme.Green : Theme.GreenMid, 1.3f);
             var lf = Theme.Mono(9.5f, FontStyle.Bold);
@@ -4973,13 +4930,11 @@ namespace Cogitator
             Theme.Glow(g, "RU", lf, Loc.En ? Theme.GreenDim : Theme.Orange, ruR, Theme.Center);
             Theme.Glow(g, "EN", lf, Loc.En ? Theme.Orange : Theme.GreenDim, enR, Theme.Center);
 
-            // переключатель стража
             var gr = GuardRect;
             Color gc = !GuardOn ? Theme.GreenDim : GuardDown ? Theme.Red : Theme.Green;
             if (GuardOn && GuardDown && (Blink / 4) % 2 == 0) using (var b = new SolidBrush(Color.FromArgb(60, Theme.Red))) g.FillRectangle(b, gr);
             else if (GuardOn) using (var b = new SolidBrush(Color.FromArgb(28, Theme.Green))) g.FillRectangle(b, gr);
             Theme.Box(g, gr, guardHover ? Theme.Green : gc, GuardOn ? 1.6f : 1.2f);
-            // глаз стража
             float ex = gr.X + 22, ey = gr.Y + gr.Height / 2;
             using (var pen = new Pen(GuardOn ? Theme.Orange : Theme.OrangeDim, 1.6f)) { g.DrawArc(pen, ex - 11, ey - 9, 22, 18, 200, 140); g.DrawArc(pen, ex - 11, ey - 9, 22, 18, 20, 140); }
             using (var b = new SolidBrush(GuardOn ? (GuardDown ? Theme.Red : Theme.Orange) : Theme.OrangeDim)) g.FillEllipse(b, ex - 3.5f, ey - 3.5f, 7, 7);
@@ -4987,7 +4942,6 @@ namespace Cogitator
         }
     }
 
-    // ---------- плитка главного терминала ----------
     class HomeTile : CrtControl
     {
         public string Num, Title, Desc, Stat = "";
@@ -5024,7 +4978,6 @@ namespace Cogitator
         }
     }
 
-    // ---------- переключатель на главном терминале ----------
     class HomeSwitch : CrtControl
     {
         public bool On;
@@ -5044,13 +4997,11 @@ namespace Cogitator
             Theme.Line(g, Theme.Orange, r.X, r.Y, r.X + k, r.Y, 1.8f); Theme.Line(g, Theme.Orange, r.X, r.Y, r.X, r.Y + k, 1.8f);
             Theme.Line(g, Theme.Orange, r.Right, r.Bottom, r.Right - k, r.Bottom, 1.8f); Theme.Line(g, Theme.Orange, r.Right, r.Bottom, r.Right, r.Bottom - k, 1.8f);
 
-            // символ питания
             float cx = r.X + 30, cy = r.Y + r.Height / 2, rr = 11;
             Color ic = On ? Theme.Orange : Theme.OrangeDim;
             using (var pen = new Pen(Color.FromArgb(50, ic), 5f)) g.DrawArc(pen, cx - rr, cy - rr, rr * 2, rr * 2, -60, 300);
             using (var pen = new Pen(ic, 2f)) { g.DrawArc(pen, cx - rr, cy - rr, rr * 2, rr * 2, -60, 300); g.DrawLine(pen, cx, cy - rr - 3, cx, cy - 2); }
 
-            // ползунок ВКЛ / ВЫКЛ
             var sw = new RectangleF(r.Right - 86, cy - 12, 70, 24);
             Theme.Box(g, sw, On ? Theme.Green : Theme.GreenDim, 1.3f);
             var knob = On ? new RectangleF(sw.X + 36, sw.Y + 4, 30, sw.Height - 8) : new RectangleF(sw.X + 4, sw.Y + 4, 30, sw.Height - 8);
@@ -5065,7 +5016,6 @@ namespace Cogitator
         }
     }
 
-    // ---------- главный терминал ----------
     class HomePage : Panel
     {
         public HomeTile[] Tiles;
@@ -5241,7 +5191,6 @@ namespace Cogitator
         }
     }
 
-    // ============================== ПЛОТЬ МАШИНЫ: ЦП, ОЗУ, ГП ==============================
     static class SysMon
     {
         [StructLayout(LayoutKind.Sequential)] struct FILETIME { public uint Lo, Hi; }
@@ -5277,7 +5226,7 @@ namespace Cogitator
             FILETIME i, k, u;
             if (GetSystemTimes(out i, out k, out u))
             {
-                ulong idle = U(i), total = U(k) + U(u);   // kernel уже включает idle
+                ulong idle = U(i), total = U(k) + U(u);
                 if (pTotal > 0 && total > pTotal) Cpu = (float)(100.0 * (1 - (double)(idle - pIdle) / (total - pTotal)));
                 pIdle = idle; pTotal = total;
             }
@@ -5290,7 +5239,6 @@ namespace Cogitator
             if (!gpuDead) SampleGpu();
         }
 
-        // загрузка ГП как в диспетчере задач: сумма по процессам на каждом движке, берётся самый занятый движок
         static void SampleGpu()
         {
             try
@@ -5314,7 +5262,7 @@ namespace Cogitator
                         CounterSample old;
                         if (!prevGpu.TryGetValue(kv.Key, out old)) continue;
                         int e = kv.Key.IndexOf("_luid_");
-                        string engine = e >= 0 ? kv.Key.Substring(e) : kv.Key;   // без pid — один движок
+                        string engine = e >= 0 ? kv.Key.Substring(e) : kv.Key;
                         double v = CounterSample.Calculate(old, kv.Value);
                         if (double.IsNaN(v) || v < 0) continue;
                         double acc; eng.TryGetValue(engine, out acc); eng[engine] = acc + v;
@@ -5323,13 +5271,13 @@ namespace Cogitator
                 }
                 prevGpu = cur;
             }
-            catch { gpuDead = true; }   // старая Windows или нет счётчиков — ГП не показываем
+            catch { gpuDead = true; }
         }
     }
 
     class MachineGauge : CrtControl
     {
-        float sc, sr, sg;   // сглаженные значения
+        float sc, sr, sg;
         readonly System.Windows.Forms.Timer tm;
 
         public MachineGauge()
@@ -5384,9 +5332,6 @@ namespace Cogitator
         }
     }
 
-    // ============================== ЛУЧ ОБНОВЛЕНИЯ ==============================
-    // тонкая полоса проходит сверху вниз — как кадровая развёртка; под ней картинка чуть увеличена, как под линзой.
-    // Это не украшение: луч проходит после каждого опроса связи и несёт его показание и цвет состояния.
     class ScanBeam : Control
     {
         public Bitmap Shot;
@@ -5403,7 +5348,6 @@ namespace Cogitator
             if (Shot == null) return;
             g.InterpolationMode = InterpolationMode.Bilinear;
             g.PixelOffsetMode = PixelOffsetMode.HighSpeed;
-            // линза: полоса высотой 0.72·H растянута на H, по ширине — на 1.5%
             float sh = H * 0.72f, sw = Width * 0.985f;
             var src = new RectangleF((Width - sw) / 2, Cy - sh / 2, sw, sh);
             g.DrawImage(Shot, new RectangleF(0, 0, Width, H), src, GraphicsUnit.Pixel);
@@ -5414,7 +5358,6 @@ namespace Cogitator
             }
             using (var pen = new Pen(Color.FromArgb(26, Col), 3f)) g.DrawLine(pen, 0, H / 2f, Width, H / 2f);
             using (var pen = new Pen(Color.FromArgb(120, Col), 1f)) g.DrawLine(pen, 0, H / 2f, Width, H / 2f);
-            // края линзы — едва заметные кромки
             using (var pen = new Pen(Color.FromArgb(22, Col), 1f)) { g.DrawLine(pen, 0, 0, Width, 0); g.DrawLine(pen, 0, H - 1, Width, H - 1); }
             if (!string.IsNullOrEmpty(Reading))
             {
@@ -5428,8 +5371,6 @@ namespace Cogitator
         }
     }
 
-    // ============================== ОЖИВЛЕНИЕ ОПРОСА В СПИСКАХ ==============================
-    // 1) по опрашиваемой строке бежит блик; 2) итог печатается посимвольно; 3) итоги раскрываются по очереди сверху вниз
     class RowFx
     {
         class Fx { public bool Probing, Queued; public DateTime Start; public string Text; public Color C; public int Shown; public DateTime Flash = DateTime.MinValue; }
@@ -5455,7 +5396,7 @@ namespace Cogitator
         public void Probe(object o) { var f = Get(o); f.Queued = false; f.Probing = true; f.Start = DateTime.Now; f.Text = null; Wake(); }
         public void Result(object o, string text, Color c)
         {
-            var f = Get(o); f.Text = text; f.C = c; f.Shown = -1;   // -1 — ждёт своей очереди на раскрытие
+            var f = Get(o); f.Text = text; f.C = c; f.Shown = -1;
             if (!reveal.Contains(o)) reveal.Add(o);
             Wake();
         }
@@ -5467,7 +5408,6 @@ namespace Cogitator
             tick++;
             if (reveal.Count > 0 && DateTime.Now >= nextReveal)
             {
-                // сверху вниз: первым раскрывается тот, что выше в списке
                 var o = reveal.OrderBy(x => order(x)).First();
                 reveal.Remove(o);
                 var f = Get(o); f.Probing = false; f.Queued = false; f.Shown = 0; f.Flash = DateTime.Now;
@@ -5483,7 +5423,6 @@ namespace Cogitator
             if (!busy) { t.Stop(); RepaintRows(); }
         }
 
-        // перерисовка только анимируемых строк — через буфер, прямо на экран, без стирания фона (ListBox иначе мерцает)
         void RepaintRows()
         {
             if (!owner.IsHandleCreated || !owner.Visible) return;
@@ -5510,7 +5449,6 @@ namespace Cogitator
             catch { owner.Invalidate(); }
         }
 
-        // рисует статус строки; возвращает false, если строку не трогали (тогда рисуется обычный статус)
         public bool Draw(Graphics g, object o, Rectangle row, RectangleF status, Font f, StringFormat sf)
         {
             Fx x;
@@ -5520,7 +5458,6 @@ namespace Cogitator
                 using (var b = new SolidBrush(Color.FromArgb((int)(70 * (1 - flash / 700)), x.C))) g.FillRectangle(b, row.X + 2, row.Y + 2, row.Width - 4, row.Height - 4);
             if (x.Probing || (x.Text != null && x.Shown < 0))
             {
-                // блик бежит по строке
                 float ph = (float)((DateTime.Now - x.Start).TotalMilliseconds % 1400 / 1400.0);
                 float bw = 90, bx = row.X - bw + (row.Width + bw) * ph;
                 var br = new RectangleF(bx, row.Y + 2, bw, row.Height - 4);
@@ -5540,7 +5477,6 @@ namespace Cogitator
             {
                 bool typing = x.Shown < x.Text.Length;
                 string vis = x.Text.Substring(0, Math.Max(0, x.Shown)) + (typing && tick % 6 < 4 ? "█" : "");
-                // печать справа налево выглядит дёргано — при выравнивании вправо держим место под весь текст
                 if (sf.Alignment == StringAlignment.Far && typing) vis = vis.PadRight(x.Text.Length + 1);
                 using (var b = new SolidBrush(x.C)) g.DrawString(vis, f, b, status, sf);
                 return true;
@@ -5557,17 +5493,15 @@ namespace Cogitator
         }
     }
 
-    // ============================== СОНАР ==============================
-    // лёгкая трассировка раз в 25 с: по одному пакету на прыжок до 1.1.1.1. Только пока открыты «Испытания».
     class SonarHop { public int Ttl; public string Addr, Asn, AsName; public List<double> Hist = new List<double>(); }
     static class SonarProbe
     {
         public static readonly object Lk = new object();
         public static List<SonarHop> Hops = new List<SonarHop>();
-        public static int Reach = -1;          // на каком прыжке ответила цель
+        public static int Reach = -1;
         public static DateTime Last = DateTime.MinValue;
         public static bool Tunnel;
-        public static volatile bool Want;      // страница видна
+        public static volatile bool Want;
         static Thread th;
         public const string Target = "1.1.1.1";
 
@@ -5613,7 +5547,7 @@ namespace Cogitator
                     }
                     if (reached > 0) break;
                     silentRun = addr == null ? silentRun + 1 : 0;
-                    if (Reach < 0 && silentRun >= 4 && ttl > 6) break;   // дальше тишина — нет смысла ждать
+                    if (Reach < 0 && silentRun >= 4 && ttl > 6) break;
                 }
             lock (Lk)
             {
@@ -5624,8 +5558,6 @@ namespace Cogitator
         }
     }
 
-    // ============================== СБОИ РАЗВЁРТКИ ==============================
-    // изредка картинка дёргается по горизонтали полосами — как старый кинескоп, теряющий синхронизацию
     class GlitchOverlay : Control
     {
         public Bitmap Shot;
@@ -5653,14 +5585,13 @@ namespace Cogitator
             var g = e.Graphics;
             if (Shot == null) return;
             g.InterpolationMode = InterpolationMode.NearestNeighbor;
-            int whole = Frame == 1 ? (rnd.Next(2) == 0 ? -2 : 2) : 0;   // на втором кадре чуть сдвигается всё
+            int whole = Frame == 1 ? (rnd.Next(2) == 0 ? -2 : 2) : 0;
             g.DrawImageUnscaled(Shot, whole, 0);
             if (bandY == null) return;
             for (int i = 0; i < bandY.Length; i++)
             {
                 var src = new Rectangle(0, bandY[i], Shot.Width, bandH[i]);
                 g.DrawImage(Shot, new Rectangle(bandDx[i], bandY[i], Shot.Width, bandH[i]), src, GraphicsUnit.Pixel);
-                // разрыв строки — тонкий цветной срез по краю полосы
                 using (var b = new SolidBrush(Color.FromArgb(70, bandDx[i] > 0 ? Theme.Green : Theme.Orange))) g.FillRectangle(b, 0, bandY[i], Shot.Width, 1);
                 if (bandDx[i] > 0) using (var b = new SolidBrush(Theme.Bg)) g.FillRectangle(b, 0, bandY[i], bandDx[i], bandH[i]);
                 else using (var b = new SolidBrush(Theme.Bg)) g.FillRectangle(b, Shot.Width + bandDx[i], bandY[i], -bandDx[i], bandH[i]);
@@ -5668,7 +5599,6 @@ namespace Cogitator
         }
     }
 
-    // ---------- занавес перехода между страницами ----------
     class Transition : Control
     {
         public float Open, Progress, Angle;
@@ -5681,7 +5611,6 @@ namespace Cogitator
             BackColor = Theme.Bg;
         }
 
-        // видимая часть — только раскрытый контейнер; снаружи остаётся страница
         public void Apply()
         {
             int w = (int)Math.Round(Width * Math.Max(0f, Math.Min(1f, Open)));
@@ -5703,7 +5632,6 @@ namespace Cogitator
             float w = r.Width * Math.Max(0f, Math.Min(1f, Open));
             float x0 = (r.Width - w) / 2f, x1 = x0 + w;
 
-            // свечение кромок раскрывающегося контейнера
             for (int i = 0; i < 4; i++)
             {
                 using (var pen = new Pen(Color.FromArgb(70 - i * 15, Theme.Green), 6 - i))
@@ -5716,7 +5644,6 @@ namespace Cogitator
             Theme.Line(g, Theme.Green, x1 - 3, 0, x1 - 3, r.Height, 2f);
             Theme.Line(g, Theme.GreenDim, x0 + 9, 0, x0 + 9, r.Height, 1f);
             Theme.Line(g, Theme.GreenDim, x1 - 10, 0, x1 - 10, r.Height, 1f);
-            // оранжевые скобы на кромках
             float cy = r.Height / 2f;
             foreach (float ex in new[] { x0 + 2, x1 - 3 })
             {
@@ -5727,7 +5654,6 @@ namespace Cogitator
                 Theme.Line(g, Theme.Orange, ex + 16 * dir, cy + 60, ex + 16 * dir, cy + 48, 2f);
             }
 
-            // шестерни и надписи в центре
             var c = new PointF(r.Width / 2f, cy - 30);
             float ro = 46, ri = ro * 0.78f;
             var big = Theme.CogPoints(c, ro, ri, 12, Angle);
@@ -5737,7 +5663,6 @@ namespace Cogitator
             float h = ri * 0.5f;
             using (var pen = new Pen(Theme.Orange, 2f)) g.DrawEllipse(pen, c.X - h, c.Y - h, h * 2, h * 2);
             using (var b = new SolidBrush(Theme.Red)) g.FillEllipse(b, c.X - h * 0.45f, c.Y - h * 0.45f, h * 0.9f, h * 0.9f);
-            // малая шестерня в зацеплении
             var c2 = new PointF(c.X + ro + 18, c.Y - ro * 0.55f);
             var small = Theme.CogPoints(c2, 24, 18, 8, -Angle * 1.5f + 0.2f);
             using (var pen = new Pen(Color.FromArgb(50, Theme.GreenMid), 5f)) g.DrawPolygon(pen, small);
@@ -5758,9 +5683,6 @@ namespace Cogitator
         }
     }
 
-    // ---------- своя полоса прокрутки ----------
-    // Системная полоса остаётся живой (колесо, клавиши), но уезжает за край и обрезается;
-    // рядом рисуется своя, синхронизированная с ней.
     class CrtScrollHost : Panel
     {
         [StructLayout(LayoutKind.Sequential)]
@@ -5798,7 +5720,6 @@ namespace Cogitator
             Target.SetBounds(0, 0, clip.Width + sys, h);
         }
 
-        // min, max, page, pos
         public bool GetInfo(out int min, out int max, out int page, out int pos)
         {
             min = max = page = pos = 0;
@@ -5831,7 +5752,7 @@ namespace Cogitator
             var rt = Target as RichTextBox;
             if (rt != null)
             {
-                try { var pt = new Point(0, pos); SendMessage(rt.Handle, 0x400 + 222, IntPtr.Zero, ref pt); } catch { }   // EM_SETSCROLLPOS
+                try { var pt = new Point(0, pos); SendMessage(rt.Handle, 0x400 + 222, IntPtr.Zero, ref pt); } catch { }
             }
         }
 
@@ -5926,7 +5847,6 @@ namespace Cogitator
             Theme.Prep(g);
             using (var b = new SolidBrush(Theme.BgLog)) g.FillRectangle(b, ClientRectangle);
             var t = Track;
-            // рельс с делениями
             float cx = t.X + t.Width / 2;
             Theme.Line(g, Scrollable ? Theme.GreenDim : Color.FromArgb(24, 60, 32), cx, t.Y, cx, t.Bottom, 1f);
             using (var p = new Pen(Color.FromArgb(Scrollable ? 70 : 30, Theme.GreenDim), 1f))
@@ -5936,7 +5856,6 @@ namespace Cogitator
             bool hot = hover || dragging;
             using (var b = new SolidBrush(hot ? Color.FromArgb(22, 72, 34) : Theme.GreenDark)) g.FillRectangle(b, th);
             Theme.Box(g, th, hot ? Theme.Green : Theme.GreenMid, 1.3f);
-            // оранжевые засечки на концах бегунка и рифление посередине
             Theme.Line(g, Theme.Orange, th.X + 2, th.Y + 3, th.Right - 2, th.Y + 3, 1.4f);
             Theme.Line(g, Theme.Orange, th.X + 2, th.Bottom - 3, th.Right - 2, th.Bottom - 3, 1.4f);
             float my = th.Y + th.Height / 2;
@@ -5945,7 +5864,6 @@ namespace Cogitator
         }
     }
 
-    // ---------- тёмные списки ----------
     static class Ui
     {
         public static void DarkScroll(Control c)
@@ -5998,8 +5916,6 @@ namespace Cogitator
         public static StringFormat NoWrapRight = new StringFormat { Trimming = StringTrimming.EllipsisCharacter, FormatFlags = StringFormatFlags.NoWrap, LineAlignment = StringAlignment.Center, Alignment = StringAlignment.Far };
     }
 
-    // ---------- выбор святилища ----------
-    // ---------- выбор святилища: свой выпадающий список в стиле CRT ----------
     class SanctumPicker : CrtControl
     {
         public List<object> Items = new List<object>();
@@ -6058,7 +5974,7 @@ namespace Cogitator
             int h = rows * rowH + 8;
             var origin = form.PointToClient(Parent.PointToScreen(Location));
             int y = origin.Y + Height - 1;
-            if (y + h > form.ClientSize.Height - 6) y = origin.Y - h + 1;   // не влезает вниз — раскрыть вверх
+            if (y + h > form.ClientSize.Height - 6) y = origin.Y - h + 1;
             int need = Width;
             var f = Theme.Mono(10f, FontStyle.Bold);
             foreach (var it in Items) need = Math.Max(need, TextRenderer.MeasureText(TextOf(it), f).Width + 44);
@@ -6090,7 +6006,6 @@ namespace Cogitator
             Theme.Box(g, r, !en ? Theme.GreenDim : (hover || popup != null) ? Theme.Green : Theme.GreenMid, 1.4f);
             float aw = 30;
             Theme.Line(g, en ? Theme.GreenDim : Color.FromArgb(25, 60, 32), r.Right - aw, r.Y + 5, r.Right - aw, r.Bottom - 5, 1.2f);
-            // шеврон
             float cx = r.Right - aw / 2, cy = r.Y + r.Height / 2;
             Color oc = en ? Theme.Orange : Theme.OrangeDim;
             if (popup == null) { Theme.Line(g, oc, cx - 5, cy - 2, cx, cy + 3, 1.8f); Theme.Line(g, oc, cx, cy + 3, cx + 5, cy - 2, 1.8f); }
@@ -6101,7 +6016,7 @@ namespace Cogitator
             float avail = r.Width - aw - 12;
             string txt = TextOf(item);
             var sItem = item as Sanctum;
-            if (sItem != null && g.MeasureString(txt, font).Width > avail) txt = sItem.Name.ToUpperInvariant();   // не влезает — только имя
+            if (sItem != null && g.MeasureString(txt, font).Width > avail) txt = sItem.Name.ToUpperInvariant();
             using (var b = new SolidBrush(tc))
                 g.DrawString(txt, font, b, new RectangleF(r.X + 8, r.Y, avail, r.Height), Ui.NoWrap);
         }
@@ -6132,7 +6047,6 @@ namespace Cogitator
 
         int Rows { get { return Math.Max(1, (Height - 8) / RowHeight); } }
 
-        // клик мимо списка, Esc или колесо — закрыть / прокрутить
         public bool PreFilterMessage(ref Message m)
         {
             const int WM_LBUTTONDOWN = 0x201, WM_RBUTTONDOWN = 0x204, WM_NCLBUTTONDOWN = 0xA1, WM_KEYDOWN = 0x100, WM_MOUSEWHEEL = 0x20A;
@@ -6192,7 +6106,6 @@ namespace Cogitator
         }
     }
 
-    // ============================== СВОДКА ЛЕТОПИСИ ==============================
     class SummaryPanel : CrtControl
     {
         int period;
@@ -6207,17 +6120,20 @@ namespace Cogitator
         int nRed, nAmber, nGreen, nOut, worstHour = -1, minCnt = 1;
         double downSec, avgLoss = -1;
         List<KeyValuePair<string, Color>> findings = new List<KeyValuePair<string, Color>>();
+        List<KeyValuePair<string, Color>> axFindings = new List<KeyValuePair<string, Color>>();
+        KeyValuePair<string, Color> axVerdict;
+        bool axHas;
+        double[] axHourLoss = new double[24]; int[] axHourCnt = new int[24]; int axWorstHour = -1, axMinCnt = 1;
 
-        class Hit { public RectangleF R; public string[] Lines; public Color C; public int Pri, Shape; public PointF Ctr; public float Rad; }   // Shape: 0 — без подсветки, 1 — круг, 2 — ромб, 3 — заливка R
+        class Hit { public RectangleF R; public string[] Lines; public Color C; public int Pri, Shape; public PointF Ctr; public float Rad; }
         List<Hit> hits = new List<Hit>();
         RectangleF[] chips = new RectangleF[3];
         RectangleF[] modeChips = new RectangleF[2];
-        int chartMode;
+        int chartMode = 1;
         RectangleF chartRect;
         Bitmap beamOld; Stopwatch beamClock; System.Windows.Forms.Timer beamTimer;
         const int BeamMs = 520;
 
-        // луч осциллографа проходит слева направо и прописывает новый график; старый гаснет перед ним
         void SwitchChart(int mode)
         {
             try
@@ -6242,10 +6158,9 @@ namespace Cogitator
         {
             if (beamClock == null) return;
             float t = Math.Min(1f, beamClock.ElapsedMilliseconds / (float)BeamMs);
-            float e = 1 - (1 - t) * (1 - t);   // быстрее на старте, мягко к концу
+            float e = 1 - (1 - t) * (1 - t);
             var inner = new RectangleF(box.X + 2, box.Y + 12, box.Width - 4, box.Height - 14);
             float bx = inner.X + inner.Width * e;
-            // ещё не прописанная часть: старый график гаснет
             var rest = new RectangleF(bx, inner.Y, inner.Right - bx, inner.Height);
             if (rest.Width > 0)
             {
@@ -6259,7 +6174,6 @@ namespace Cogitator
                 }
                 g.Restore(st);
             }
-            // шлейф и сам луч
             float tail = Math.Min(60, bx - inner.X);
             if (tail > 1)
                 using (var lg = new LinearGradientBrush(new RectangleF(bx - tail - 1, inner.Y, tail + 1, inner.Height), Color.FromArgb(0, Theme.Green), Color.FromArgb(70, Theme.Green), LinearGradientMode.Horizontal))
@@ -6268,7 +6182,6 @@ namespace Cogitator
             using (var pen = new Pen(Color.FromArgb(240, 220, 255, 225), 1.6f)) g.DrawLine(pen, bx, inner.Y, bx, inner.Bottom);
             Theme.Line(g, Theme.Orange, bx - 5, inner.Y, bx + 5, inner.Y, 1.6f);
             Theme.Line(g, Theme.Orange, bx - 5, inner.Bottom, bx + 5, inner.Bottom, 1.6f);
-                // надпись о сверке — пока луч в начале пути
             if (t < 0.75f)
             {
                 string cap = chartMode == 0 ? Loc.T("СВЕРКА ЛЕТОПИСИ…") : Loc.T("СЧИТЫВАНИЕ ДНЕВНИКА АУСПИКА…");
@@ -6284,7 +6197,6 @@ namespace Cogitator
         }
         static readonly string[] ChartModes = { Loc.T("ИСПЫТАНИЯ"), Loc.T("ОКО АУСПИКА") };
 
-        // переключатель графика — на верхней кромке рамки, справа
         void PaintChartSwitch(Graphics g, RectangleF box)
         {
             var lf = Theme.Mono(8.5f, FontStyle.Bold);
@@ -6319,7 +6231,6 @@ namespace Cogitator
 
             var all = Store.Chronicle.Where(x => x.When >= from && x.When <= to.AddMinutes(1)).OrderBy(x => x.When).ToList();
             ax = AuspexLog.Load(from, to);
-            // ось времени начинаем от первого события, а не от полуночи
             if (all.Count > 0 || ax.Count > 0)
             {
                 var first = all.Count > 0 ? all[0].When : ax[0].When;
@@ -6327,7 +6238,7 @@ namespace Cogitator
                 var restore = all.FirstOrDefault(x => x.Ritual == 9 && Loc.Starts(x.Headline, "СВЯЗЬ ВОССТАНОВЛЕНА"));
                 if (restore != null && restore.When.AddSeconds(-restore.Seconds) < first) first = restore.When.AddSeconds(-restore.Seconds);
                 var axis = first.AddMinutes(-Math.Max(10, (to - first).TotalMinutes * 0.03));
-                from = axis;   // одна и та же ось при любом периоде, если данных столько же
+                from = axis;
             }
             foreach (var e in all) Store.Metrics(e);
             tests = all.Where(x => x.Ritual >= 1 && x.Ritual <= 5).ToList();
@@ -6385,7 +6296,81 @@ namespace Cogitator
             }
             var lastClean = tests.LastOrDefault(x => x.Key == 'g');
             if (lastClean != null) findings.Add(new KeyValuePair<string, Color>(Loc.T("ПОСЛЕДНЕЕ ЧИСТОЕ ИСПЫТАНИЕ: ") + lastClean.When.ToString("dd.MM HH:mm"), Theme.Green));
+            AnalyzeAuspex();
             Invalidate();
+        }
+
+        static double Perc(List<double> v, double q)
+        {
+            if (v.Count == 0) return 0;
+            var a = v.OrderBy(x => x).ToList();
+            double idx = q * (a.Count - 1); int lo = (int)Math.Floor(idx); int hi = (int)Math.Ceiling(idx);
+            if (lo == hi) return a[lo];
+            return a[lo] + (a[hi] - a[lo]) * (idx - lo);
+        }
+
+        void AnalyzeAuspex()
+        {
+            axFindings.Clear(); axHas = ax.Count > 0;
+            for (int h = 0; h < 24; h++) { axHourLoss[h] = 0; axHourCnt[h] = 0; }
+            axWorstHour = -1;
+            if (!axHas)
+            {
+                axVerdict = new KeyValuePair<string, Color>(Loc.T("ОКО АУСПИКА НЕ ВЕЛО ДОЗОР ЗА ЭТОТ ПЕРИОД"), Theme.GreenDim);
+                axFindings.Add(new KeyValuePair<string, Color>(Loc.T("ВОЗЗОВИ АУСПИК НА ТЕРМИНАЛЕ — ОН БУДЕТ ТИХО СЛЕДИТЬ ЗА СВЯЗЬЮ И ВЕСТИ ДНЕВНИК ПО МИНУТАМ."), Theme.GreenMid));
+                return;
+            }
+            int covered = ax.Count;
+            long sent = ax.Sum(x => (long)x.Sent), recv = ax.Sum(x => (long)x.Recv);
+            double loss = sent > 0 ? 100.0 * (sent - recv) / sent : 0;
+            var up = ax.Where(x => x.Recv > 0).ToList();
+            int upMin = up.Count;
+            double avail = covered > 0 ? 100.0 * upMin / covered : 0;
+            double median = Perc(up.Select(x => x.Avg).ToList(), 0.5);
+            double p95 = Perc(up.Select(x => x.Max).ToList(), 0.95);
+            double jitter = up.Count > 0 ? up.Average(x => x.Jit) : 0;
+            int outages = 0, outMin = 0; bool inOut = false; DateTime worstOutStart = DateTime.MinValue; int curOut = 0, longestOut = 0; DateTime longestStart = DateTime.MinValue;
+            foreach (var m in ax.OrderBy(x => x.When))
+            {
+                if (m.Recv == 0 && m.Sent > 0)
+                {
+                    outMin++; if (!inOut) { inOut = true; outages++; curOut = 0; worstOutStart = m.When; } curOut++;
+                    if (curOut > longestOut) { longestOut = curOut; longestStart = worstOutStart; }
+                }
+                else inOut = false;
+            }
+            foreach (var m in ax)
+            {
+                int h = m.When.Hour; double ml = m.Sent > 0 ? 100.0 * (m.Sent - m.Recv) / m.Sent : 0;
+                axHourLoss[h] += ml; axHourCnt[h]++;
+            }
+            for (int h = 0; h < 24; h++) if (axHourCnt[h] > 0) axHourLoss[h] /= axHourCnt[h];
+            axMinCnt = covered >= 120 ? 3 : covered >= 30 ? 2 : 1;
+            for (int h = 0; h < 24; h++) { if (axHourCnt[h] < axMinCnt) continue; if (axWorstHour < 0 || axHourLoss[h] > axHourLoss[axWorstHour]) axWorstHour = h; }
+
+            Color vc; string vh;
+            if (outages > 0 || loss >= 3 || avail < 99.5) { vc = Theme.Red; vh = outages > 0 ? Loc.T("СВЯЗЬ РВЁТСЯ") : Loc.T("ПОТЕРИ В КАНАЛЕ"); }
+            else if (loss >= 1 || jitter > 30 || p95 > 250) { vc = Theme.Amber; vh = (jitter > 30 || p95 > 250) ? Loc.T("ЗАДЕРЖКА СКАЧЕТ") : Loc.T("ЛЁГКИЕ ПОТЕРИ"); }
+            else { vc = Theme.Green; vh = Loc.T("ДОЗОР СПОКОЕН"); }
+            axVerdict = new KeyValuePair<string, Color>(vh, vc);
+
+            double spanMin = (to - from).TotalMinutes;
+            axFindings.Add(new KeyValuePair<string, Color>(Loc.T("НАБЛЮДЕНИЕ: ") + covered + Loc.T(" МИН ЗАПИСАНО") + (spanMin > covered * 1.5 ? Loc.T(" (С ПЕРЕРЫВАМИ)") : ""), Theme.GreenMid));
+            axFindings.Add(new KeyValuePair<string, Color>(Loc.T("ДОСТУПНОСТЬ ") + (avail >= 99.95 ? "100%" : Pct(avail)) + Loc.T(" · ОБРЫВОВ ") + outages + (outMin > 0 ? Loc.T(" · БЕЗ СВЯЗИ ") + outMin + Loc.T(" МИН") : ""), outages > 0 ? Theme.Red : Theme.Green));
+            axFindings.Add(new KeyValuePair<string, Color>(Loc.T("ПОТЕРИ ПАКЕТОВ: ") + Pct(loss) + Loc.T(" (ПО ") + sent + Loc.T(" ПАКЕТАМ)"), LossColor(loss)));
+            axFindings.Add(new KeyValuePair<string, Color>(Loc.T("ЗАДЕРЖКА: МЕДИАНА ") + Math.Round(median) + Loc.T(" МС · P95 ") + Math.Round(p95) + Loc.T(" МС"), p95 > 250 ? Theme.Amber : Theme.Green));
+            axFindings.Add(new KeyValuePair<string, Color>(Loc.T("ДЖИТТЕР (ДРОЖАНИЕ): ") + Math.Round(jitter) + Loc.T(" МС"), jitter > 30 ? Theme.Amber : Theme.Green));
+            var tun = up.Where(x => x.Mode == 1).ToList(); var dir = up.Where(x => x.Mode == 0).ToList();
+            if (tun.Count >= 3 && dir.Count >= 3)
+                axFindings.Add(new KeyValuePair<string, Color>(Loc.T("ТУННЕЛЬ ") + Math.Round(Perc(tun.Select(x => x.Avg).ToList(), 0.5)) + Loc.T(" МС · НАПРЯМУЮ ") + Math.Round(Perc(dir.Select(x => x.Avg).ToList(), 0.5)) + Loc.T(" МС"), Theme.GreenMid));
+            if (longestOut > 0)
+                axFindings.Add(new KeyValuePair<string, Color>(Loc.T("ХУДШИЙ ОБРЫВ: ") + longestOut + Loc.T(" МИН С ") + longestStart.ToString("dd.MM HH:mm"), Theme.Red));
+            else
+            {
+                var worst = up.OrderByDescending(x => x.Max).FirstOrDefault();
+                if (worst != null && worst.Max > median * 2 && worst.Max > 120)
+                    axFindings.Add(new KeyValuePair<string, Color>(Loc.T("ПИК ЗАДЕРЖКИ: ") + Math.Round(worst.Max) + Loc.T(" МС В ") + worst.When.ToString("dd.MM HH:mm"), Theme.Amber));
+            }
         }
 
         protected override void OnMouseMove(MouseEventArgs e)
@@ -6430,7 +6415,6 @@ namespace Cogitator
             Theme.Box(g, tb, Theme.Green, 1.2f);
             Theme.Glow(g, Loc.T("СВОДКА ЛЕТОПИСИ"), lf, Theme.Green, tb, Theme.Center);
 
-            // выбор периода
             float cx = x0 + w;
             for (int i = 2; i >= 0; i--)
             {
@@ -6445,7 +6429,6 @@ namespace Cogitator
                 Theme.Glow(g, Periods[i], lf, sel ? Theme.Green : Theme.GreenMid, chips[i], Theme.Center);
             }
 
-            // ---- числа-итоги ----
             float ty = R.Y + 68, th = 76, gap = 10, tw2 = (w - gap * 5) / 6;
             int lossy = withLoss.Count(x => x.Loss >= 1);
             var tiles = new[]
@@ -6482,7 +6465,6 @@ namespace Cogitator
             PaintTooltip(g);
         }
 
-        // отрезки привязаны к часам, а не к началу оси: одни и те же данные дают одну и ту же кривую при любом периоде
         static double BucketSec(double spanSec, int target)
         {
             double[] nice = { 60, 120, 300, 600, 900, 1800, 3600, 7200, 10800, 21600, 43200, 86400, 172800, 345600 };
@@ -6492,7 +6474,7 @@ namespace Cogitator
         }
         DateTime BucketOrigin(double size)
         {
-            var t0 = new DateTime(2000, 1, 3);   // понедельник, полночь
+            var t0 = new DateTime(2000, 1, 3);
             return t0.AddSeconds(Math.Floor((from - t0).TotalSeconds / size) * size);
         }
 
@@ -6518,14 +6500,12 @@ namespace Cogitator
                     g.DrawString(Pct(top * i / 2), tf, b, new RectangleF(box.X + 4, y - 7, 42, 14), Theme.Right);
                 }
             using (var pen = new Pen(Theme.GreenDim, 1f)) g.DrawLine(pen, p.X, p.Bottom, p.Right, p.Bottom);
-            // порог 3%
             if (3 < top)
             {
                 float y3 = p.Bottom - (float)(p.Height * 3 / top);
                 using (var pen = new Pen(Color.FromArgb(120, Theme.Amber), 1f) { DashStyle = DashStyle.Dash }) g.DrawLine(pen, p.X, y3, p.Right, y3);
                 using (var b = new SolidBrush(Color.FromArgb(170, Theme.Amber))) g.DrawString(Loc.T("ПОРОГ 3%"), tf, b, p.Right - 58, y3 - 13);
             }
-            // ось времени
             double span = (to - from).TotalDays;
             using (var b = new SolidBrush(Theme.GreenDim))
                 for (int i = 0; i <= 6; i++)
@@ -6534,7 +6514,6 @@ namespace Cogitator
                     float x = X(p, t);
                     g.DrawString(AxisLabel(t), tf, b, new RectangleF(x - 40, p.Bottom + 4, 80, 14), Theme.Center);
                 }
-            // падения связи — полосы
             foreach (var bd in bands)
             {
                 float a = X(p, bd.Key), z = Math.Max(a + 2, X(p, bd.Value));
@@ -6542,7 +6521,6 @@ namespace Cogitator
                 using (var b = new SolidBrush(Color.FromArgb(26, Theme.Red))) g.FillRectangle(b, rr);
                 hits.Add(new Hit { R = RectangleF.Inflate(rr, 3, 0), C = Theme.Red, Pri = 0, Shape = 3, Lines = new[] { Loc.T("ПАДЕНИЕ СВЯЗИ (СТРАЖ)"), bd.Key.ToString("dd.MM HH:mm:ss") + " — " + bd.Value.ToString("HH:mm:ss"), Loc.T("ПРОСТОЙ: ") + Guardian.Fmt(bd.Value - bd.Key).ToUpperInvariant() } });
             }
-            // отключения VPN — засечки
             foreach (var v in vpnOffs)
             {
                 float x = X(p, v.When);
@@ -6561,7 +6539,6 @@ namespace Cogitator
             }
             Func<double, float> Y = v => p.Bottom - (float)(p.Height * Math.Min(1, v / top));
 
-            // отдельные замеры — тусклые точки фоном
             for (int i = 0; i < withLoss.Count; i++)
             {
                 var e = withLoss[i];
@@ -6578,7 +6555,6 @@ namespace Cogitator
                 });
             }
 
-            // кривая: средние потери по отрезкам времени; там, где замеров не было, — разрыв
             var bucket = new List<double>[nb]; var btime = new double[nb];
             for (int i = 0; i < nb; i++) bucket[i] = new List<double>();
             span = Math.Max(1, (to - from).TotalSeconds);
@@ -6606,7 +6582,7 @@ namespace Cogitator
             for (int k = 0; k < nb; k++)
             {
                 if (bucket[k].Count == 0) continue;
-                if (k - lastK > 3) flush();   // больше трёх пустых отрезков подряд — линия рвётся
+                if (k - lastK > 3) flush();
                 double avg = bucket[k].Average();
                 var pt = new PointF(X(p, from.AddSeconds(btime[k] / bucket[k].Count)), Y(avg));
                 seg.Add(pt); segV.Add(avg);
@@ -6629,7 +6605,6 @@ namespace Cogitator
                 }
         }
 
-        // приговоры по тем же отрезкам времени: один знак на отрезок, цвет — худший приговор
         void PaintVerdictLane(Graphics g, RectangleF lane, RectangleF p, double bsz, DateTime borg)
         {
             var tf = Theme.Mono(7f, FontStyle.Bold);
@@ -6658,7 +6633,6 @@ namespace Cogitator
             }
         }
 
-        // ---- второй график: всё, что видело око ауспика ----
         void PaintAuspex(Graphics g, RectangleF box)
         {
             Header(g, box, Loc.T("ОКО АУСПИКА · ПИНГ И ПОТЕРИ ДО 1.1.1.1"));
@@ -6669,7 +6643,6 @@ namespace Cogitator
                 Theme.Glow(g, Loc.T("ОКО АУСПИКА НЕ ОТКРЫВАЛОСЬ ЗА ЭТОТ ПЕРИОД — ВОЗЗОВИ ЕГО НА ТЕРМИНАЛЕ"), Theme.Mono(9f, FontStyle.Bold), Theme.GreenDim, p, Theme.Center);
                 return;
             }
-            // сводка одной строкой
             int sentT = ax.Sum(m => m.Sent), recvT = ax.Sum(m => m.Recv);
             double lossT = sentT > 0 ? 100.0 * (sentT - recvT) / sentT : 0;
             var okm = ax.Where(m => m.Recv > 0).ToList();
@@ -6696,7 +6669,6 @@ namespace Cogitator
                 sx += g.MeasureString(kv.Key, sf).Width + 18;
             }
 
-            // верх — пинг, низ — потери
             var pp = new RectangleF(p.X, p.Y, p.Width, p.Height * 0.68f);
             var lp = new RectangleF(p.X, pp.Bottom + p.Height * 0.08f, p.Width, p.Height * 0.24f);
             double span = Math.Max(1, (to - from).TotalSeconds);
@@ -6716,7 +6688,6 @@ namespace Cogitator
             double lmax = 0; for (int k = 0; k < nb; k++) if (cs[k] > 0) lmax = Math.Max(lmax, 100.0 * (cs[k] - cr[k]) / cs[k]);
             double ltop = lmax <= 5 ? 5 : lmax <= 20 ? 20 : lmax <= 50 ? 50 : 100;
 
-            // сетка и подписи
             using (var pen = new Pen(Color.FromArgb(36, Theme.Green), 1f) { DashStyle = DashStyle.Dot })
             using (var b = new SolidBrush(Theme.GreenDim))
             {
@@ -6737,7 +6708,6 @@ namespace Cogitator
                     var t = from.AddSeconds(span * i / 6);
                     g.DrawString(AxisLabel(t), tf, b, new RectangleF(X(p, t) - 40, lp.Bottom + 4, 80, 14), Theme.Center);
                 }
-            // падения связи по Стражу — те же полосы, что и выше
             foreach (var bd in bands)
             {
                 float a = X(p, bd.Key), z = Math.Max(a + 2, X(p, bd.Value));
@@ -6767,7 +6737,6 @@ namespace Cogitator
                 if (cs[k] == 0) continue;
                 float x = X(p, from.AddSeconds(ct[k] / cn[k]));
                 double loss = 100.0 * (cs[k] - cr[k]) / cs[k];
-                // потери — столбики снизу
                 if (loss >= 1)
                 {
                     float lh = Math.Max(2, (float)(lp.Height * Math.Min(1, loss / ltop)));
@@ -6777,7 +6746,6 @@ namespace Cogitator
                 if (avg >= 0)
                 {
                     if (k - lastK > 3) flush();
-                    // разброс до худшего пинга — тонкая вертикаль
                     seg.Add(new PointF(x, PY(avg))); segV.Add(avg); lastK = k;
                 }
                 else { flush(); Theme.Line(g, Theme.Red, x, pp.Y + 2, x, pp.Bottom, 1.2f); }
@@ -6798,9 +6766,11 @@ namespace Cogitator
         void PaintHours(Graphics g, RectangleF box)
 
         {
-            Header(g, box, Loc.T("ЧАСЫ СУТОК · СРЕДНИЕ ПОТЕРИ"));
+            bool aux = chartMode == 1;
+            var HL = aux ? axHourLoss : hourLoss; var HC = aux ? axHourCnt : hourCnt; int wH = aux ? axWorstHour : worstHour; int mC = aux ? axMinCnt : minCnt;
+            Header(g, box, aux ? Loc.T("ЧАСЫ СУТОК · ПОТЕРИ ПО АУСПИКУ") : Loc.T("ЧАСЫ СУТОК · СРЕДНИЕ ПОТЕРИ"));
             var p = new RectangleF(box.X + 48, box.Y + 22, box.Width - 62, box.Height - 46);
-            double mx = 0; for (int h = 0; h < 24; h++) if (hourCnt[h] > 0) mx = Math.Max(mx, hourLoss[h]);
+            double mx = 0; for (int h = 0; h < 24; h++) if (HC[h] > 0) mx = Math.Max(mx, HL[h]);
             double top = Math.Max(5, Math.Ceiling(mx / 5) * 5);
             var tf = Theme.Mono(7.5f, FontStyle.Regular);
             using (var b = new SolidBrush(Theme.GreenDim))
@@ -6817,16 +6787,16 @@ namespace Cogitator
                 if (h % 3 == 0) using (var b = new SolidBrush(Theme.GreenDim)) g.DrawString(h.ToString("00"), tf, b, new RectangleF(x - 8, p.Bottom + 4, bw + 16, 14), Theme.Center);
                 var col = new RectangleF(p.X + h * slot, p.Y, slot, p.Height);
                 bool hov = col.Contains(mouse);
-                if (hourCnt[h] == 0)
+                if (HC[h] == 0)
                 {
                     using (var b = new SolidBrush(Color.FromArgb(40, Theme.GreenDim))) g.FillRectangle(b, x, p.Bottom - 2, bw, 2);
                     hits.Add(new Hit { R = col, C = Theme.GreenDim, Lines = new[] { h.ToString("00") + ":00–" + ((h + 1) % 24).ToString("00") + ":00", Loc.T("ЗАМЕРОВ НЕТ") } });
                     continue;
                 }
-                float bh = Math.Max(2, (float)(p.Height * Math.Min(1, hourLoss[h] / top)));
+                float bh = Math.Max(2, (float)(p.Height * Math.Min(1, HL[h] / top)));
                 var bar = new RectangleF(x, p.Bottom - bh, bw, bh);
-                Color c = h == worstHour && hourLoss[h] > 0 ? Theme.Orange : Theme.GreenMid;
-                bool weak = hourCnt[h] < minCnt;   // мало замеров — столбец приглушён и в выводы не идёт
+                Color c = h == wH && HL[h] > 0 ? Theme.Orange : Theme.GreenMid;
+                bool weak = HC[h] < minCnt;
                 if (hov) using (var b = new SolidBrush(Color.FromArgb(25, Theme.Green))) g.FillRectangle(b, col);
                 if (weak)
                 {
@@ -6835,23 +6805,34 @@ namespace Cogitator
                 }
                 else using (var b = new SolidBrush(Color.FromArgb(hov ? 255 : 210, c))) g.FillRectangle(b, bar);
                 hits.Add(new Hit { R = col, C = c, Lines = weak
-                    ? new[] { h.ToString("00") + ":00–" + ((h + 1) % 24).ToString("00") + ":00", Loc.T("ЗАМЕРОВ: ") + hourCnt[h] + Loc.T(" — МАЛО, НЕНАДЁЖНО"), Loc.T("СРЕДНИЕ ПОТЕРИ: ") + Pct(hourLoss[h]) }
-                    : new[] { h.ToString("00") + ":00–" + ((h + 1) % 24).ToString("00") + ":00", Loc.T("ЗАМЕРОВ: ") + hourCnt[h], Loc.T("СРЕДНИЕ ПОТЕРИ: ") + Pct(hourLoss[h]) } });
+                    ? new[] { h.ToString("00") + ":00–" + ((h + 1) % 24).ToString("00") + ":00", Loc.T("ЗАМЕРОВ: ") + HC[h] + Loc.T(" — МАЛО, НЕНАДЁЖНО"), Loc.T("СРЕДНИЕ ПОТЕРИ: ") + Pct(HL[h]) }
+                    : new[] { h.ToString("00") + ":00–" + ((h + 1) % 24).ToString("00") + ":00", Loc.T("ЗАМЕРОВ: ") + HC[h], Loc.T("СРЕДНИЕ ПОТЕРИ: ") + Pct(HL[h]) } });
             }
-            if (worstHour >= 0 && hourCnt[worstHour] > 0 && hourLoss[worstHour] > 0)
+            if (wH >= 0 && HC[wH] > 0 && HL[wH] > 0)
             {
-                float x = p.X + worstHour * slot + slot / 2;
-                float y = p.Bottom - Math.Max(2, (float)(p.Height * Math.Min(1, hourLoss[worstHour] / top)));
+                float x = p.X + wH * slot + slot / 2;
+                float y = p.Bottom - Math.Max(2, (float)(p.Height * Math.Min(1, HL[wH] / top)));
                 Theme.Glow(g, Loc.T("ХУДШИЙ"), Theme.Mono(7.5f, FontStyle.Bold), Theme.Orange, new RectangleF(x - 40, y - 16, 80, 14), Theme.Center);
             }
         }
 
         void PaintFindings(Graphics g, RectangleF box)
         {
-            Header(g, box, Loc.T("ВЫВОДЫ КОГИТАТОРА"));
+            bool aux = chartMode == 1;
+            Header(g, box, aux ? Loc.T("СВОДКА ДОЗОРА АУСПИКА") : Loc.T("ВЫВОДЫ КОГИТАТОРА"));
             var f = Theme.Mono(9f, FontStyle.Bold);
             float y = box.Y + 22, x = box.X + 14, tw = box.Width - 40;
-            foreach (var kv in findings)
+            if (aux)
+            {
+                var vf = Theme.Title(12f);
+                var vsz = g.MeasureString(axVerdict.Key, vf, (int)tw);
+                var vb = new RectangleF(x, y, tw + 16, vsz.Height + 10);
+                using (var b = new SolidBrush(Color.FromArgb(22, axVerdict.Value))) g.FillRectangle(b, vb);
+                Theme.Line(g, axVerdict.Value, vb.X, vb.Y, vb.X, vb.Bottom, 2.4f);
+                Theme.Glow(g, axVerdict.Key, vf, axVerdict.Value, new RectangleF(x + 12, y + 3, tw, vsz.Height + 4), StringFormat.GenericDefault);
+                y += vsz.Height + 18;
+            }
+            foreach (var kv in (aux ? axFindings : findings))
             {
                 var sz = g.MeasureString(kv.Key, f, (int)tw);
                 if (y + sz.Height > box.Bottom - 8) break;
@@ -6897,10 +6878,6 @@ namespace Cogitator
         }
     }
 
-    // ============================== АУСПИК: HUD ПОВЕРХ ОКОН ==============================
-    // ============================== ОПОЗНАНИЕ ТУННЕЛЕЙ ==============================
-    // WireGuard/AmneziaWG, sing-box (Throne, Nekoray, Hiddify), Xray, Clash, OpenVPN — по имени адаптера;
-    // неизвестный клиент — по маршруту: интернет уходит в адаптер без MAC-адреса.
     static class Tun
     {
         [DllImport("iphlpapi.dll")] static extern int GetBestInterface(uint dwDestAddr, out uint idx);
@@ -6922,7 +6899,6 @@ namespace Cogitator
 
         static int Idx(NetworkInterface n) { try { return n.GetIPProperties().GetIPv4Properties().Index; } catch { return -1; } }
 
-        // активный туннель или null
         public static NetworkInterface Find(string pattern) { NetworkInterface any; return Find(pattern, out any); }
 
         public static NetworkInterface Find(string pattern, out NetworkInterface anyKnown)
@@ -6938,23 +6914,21 @@ namespace Cogitator
                 if (n.NetworkInterfaceType == NetworkInterfaceType.Loopback || !Looks(n, pattern)) continue;
                 if (anyKnown == null) anyKnown = n;
                 if (n.OperationalStatus != OperationalStatus.Up) continue;
-                if (up == null || Idx(n) == best) up = n;   // из нескольких — тот, куда идёт интернет
+                if (up == null || Idx(n) == best) up = n;
             }
             if (up != null) return up;
-            // незнакомый клиент: интернет уходит в адаптер без MAC — это туннель
             var bn = all.FirstOrDefault(n => n.OperationalStatus == OperationalStatus.Up && Idx(n) == best);
             if (bn != null && bn.NetworkInterfaceType != NetworkInterfaceType.Loopback && !Regex.IsMatch(bn.Name + " " + bn.Description, NotTunnel, RegexOptions.IgnoreCase))
             {
                 byte[] mac = null;
                 try { mac = bn.GetPhysicalAddress().GetAddressBytes(); } catch { }
-                bool pppoe = Regex.IsMatch(bn.Name + " " + bn.Description, @"pppoe|высокоскоростн|broadband|широкополос", RegexOptions.IgnoreCase);   // PPPoE провайдера — не туннель
+                bool pppoe = Regex.IsMatch(bn.Name + " " + bn.Description, @"pppoe|высокоскоростн|broadband|широкополос", RegexOptions.IgnoreCase);
                 if (!pppoe && (mac == null || mac.Length == 0 || mac.All(x => x == 0) || bn.NetworkInterfaceType == NetworkInterfaceType.Ppp || bn.NetworkInterfaceType == NetworkInterfaceType.Tunnel))
                     return bn;
             }
             return null;
         }
 
-        // клиент в режиме системного прокси (Throne/Xray без TUN): адаптера нет, браузеры идут через 127.0.0.1
         public static string SystemProxy()
         {
             try
@@ -6967,16 +6941,14 @@ namespace Cogitator
                     string srv = (k.GetValue("ProxyServer") as string ?? "").Trim();
                     if (srv.Length == 0) return null;
                     var m = Regex.Match(srv, @"(?:^|[;=])((?:127\.\d+\.\d+\.\d+|localhost|\[::1\]):\d+)", RegexOptions.IgnoreCase);
-                    return m.Success ? m.Groups[1].Value : null;   // внешний корпоративный прокси — не VPN
+                    return m.Success ? m.Groups[1].Value : null;
                 }
             }
             catch { return null; }
         }
     }
 
-    // ============================== ДНЕВНИК АУСПИКА ==============================
-    // каждую минуту наблюдения — одна строка: сколько пингов ушло, сколько вернулось, средний и худший пинг, режим
-    class AxMin { public DateTime When; public int Sent, Recv; public double Avg, Max, Jit; public int Mode; }   // Mode: 0 — напрямую, 1 — туннель, 2 — прокси
+    class AxMin { public DateTime When; public int Sent, Recv; public double Avg, Max, Jit; public int Mode; }
 
     static class AuspexLog
     {
@@ -7006,7 +6978,7 @@ namespace Cogitator
 
         static void FlushLocked()
         {
-            if (sent < 5 || cur == DateTime.MinValue) return;   // огрызки меньше 5 секунд не пишем
+            if (sent < 5 || cur == DateTime.MinValue) return;
             try
             {
                 Directory.CreateDirectory(DirA);
@@ -7063,14 +7035,12 @@ namespace Cogitator
     class AuspexData
 
     {
-        public double Last = -2;            // -2 — ещё нет данных, -1 — нет ответа
+        public double Last = -2;
         public double Loss, Jitter;
         public int MissStreak;
         public volatile bool Vpn, Proxy;
-        public DateTime At = DateTime.MinValue;   // когда пришёл последний замер
-        // замер не обновлялся дольше 3 с — опрос завис (сеть рвётся так, что ping не возвращается вовремя)
+        public DateTime At = DateTime.MinValue;
         public bool Stale { get { return Last != -2 && At != DateTime.MinValue && (DateTime.Now - At).TotalSeconds > 3; } }
-        // два ответа подряд не пришли или опрос завис — связи нет
         public bool Dead { get { return MissStreak >= 2 || Stale; } }
         public List<double> Hist = new List<double>();
         public Color State
@@ -7086,7 +7056,6 @@ namespace Cogitator
         }
     }
 
-    // ---------- ползунок в духе когитатора ----------
     class CrtSlider : Control
     {
         public int Min = 25, Max = 100, Value = 90;
@@ -7137,7 +7106,6 @@ namespace Cogitator
             var t = Track;
             float k = (float)(Value - Min) / (Max - Min);
             float x = t.X + t.Width * k;
-            // насечки через каждые 25%
             for (int v = Min; v <= Max; v += 25)
             {
                 float tx = t.X + t.Width * (v - Min) / (Max - Min);
@@ -7145,7 +7113,6 @@ namespace Cogitator
             }
             using (var b = new SolidBrush(Theme.GreenDark)) g.FillRectangle(b, t);
             using (var b = new SolidBrush(Theme.Green)) g.FillRectangle(b, t.X, t.Y, x - t.X, t.Height);
-            // ползун — ромб-печать
             var dm = new[] { new PointF(x, t.Y - 6), new PointF(x + 6, t.Y + 2), new PointF(x, t.Y + 10), new PointF(x - 6, t.Y + 2) };
             using (var b = new SolidBrush(Theme.Bg)) g.FillPolygon(b, dm);
             using (var pen = new Pen(Theme.Orange, 1.6f)) g.DrawPolygon(pen, dm);
@@ -7168,8 +7135,8 @@ namespace Cogitator
             Slider = new CrtSlider { Caption = Loc.T("ПЛОТНОСТЬ ОБРАЗА"), Bounds = new Rectangle(4, 8, 232, 42) };
             Controls.Add(Slider);
         }
-        protected override CreateParams CreateParams { get { var cp = base.CreateParams; cp.ExStyle |= 0x80; return cp; } }   // не в Alt+Tab
-        protected override void OnDeactivate(EventArgs e) { base.OnDeactivate(e); BeginInvoke((Action)Close); }   // клик мимо — закрыться
+        protected override CreateParams CreateParams { get { var cp = base.CreateParams; cp.ExStyle |= 0x80; return cp; } }
+        protected override void OnDeactivate(EventArgs e) { base.OnDeactivate(e); BeginInvoke((Action)Close); }
         protected override void OnKeyDown(KeyEventArgs e)
         {
             base.OnKeyDown(e);
@@ -7224,7 +7191,6 @@ namespace Cogitator
         Form opPopup;
         System.Windows.Forms.Timer hintTimer;
 
-        // своё окошко с ползунком: в меню Windows ползунок не ловит мышь
         public void ShowOpacityPopup()
         {
             if (opPopup != null && !opPopup.IsDisposed) { opPopup.Close(); }
@@ -7253,7 +7219,6 @@ namespace Cogitator
             hint = true; hintTimer.Stop(); hintTimer.Start(); Invalidate();
         }
 
-        // колесо над плашкой — прозрачность
         protected override void OnMouseWheel(MouseEventArgs e)
         {
             base.OnMouseWheel(e);
@@ -7261,7 +7226,6 @@ namespace Cogitator
             if (Slider != null) { Slider.Value = Store.HudOpacity; Slider.Invalidate(); }
         }
 
-        // не появляется в Alt+Tab и не перехватывает фокус у игры
         protected override CreateParams CreateParams
         {
             get { var cp = base.CreateParams; cp.ExStyle |= 0x80 | 0x08000000 | 0x8; return cp; }
@@ -7272,7 +7236,7 @@ namespace Cogitator
         {
             base.OnMouseDown(e);
             if (e.Button != MouseButtons.Left) return;
-            try { ReleaseCapture(); SendMessage(Handle, 0xA1, (IntPtr)2, IntPtr.Zero); } catch { }   // перетаскивание за любое место
+            try { ReleaseCapture(); SendMessage(Handle, 0xA1, (IntPtr)2, IntPtr.Zero); } catch { }
             if (Moved != null) Moved();
         }
 
@@ -7308,7 +7272,6 @@ namespace Cogitator
             using (var b = new SolidBrush(Theme.GreenDim)) g.DrawString(Loc.T("ПОТЕРИ"), sf, b, new RectangleF(120, 22, Width - 130, 14), Theme.Right);
             Theme.Glow(g, d.Last == -2 ? "—" : Math.Round(d.Loss, 1).ToString(CultureInfo.InvariantCulture) + "%", Theme.Mono(10f, FontStyle.Bold), lc, new RectangleF(120, 34, Width - 130, 16), Theme.Right);
 
-            // мини-график последних замеров
             var p = new RectangleF(10, 58, Width - 20, 92 - 66);
             using (var pen = new Pen(Color.FromArgb(50, Theme.GreenDim))) g.DrawLine(pen, p.X, p.Bottom, p.Right, p.Bottom);
             List<double> h; lock (d.Hist) h = new List<double>(d.Hist);
@@ -7331,7 +7294,6 @@ namespace Cogitator
                 if (seg.Count > 1) using (var pen = new Pen(Theme.Green, 1.3f)) g.DrawLines(pen, seg.ToArray());
             }
 
-            // строки своих врат
             var gls = Gates;
             if (gls != null && gls.Count > 0 && Height > 100)
             {
@@ -7342,7 +7304,7 @@ namespace Cogitator
                     float y0 = 98 + gi * 22;
                     List<double> gh; lock (gl.Hist) gh = new List<double>(gl.Hist);
                     var okv = gh.Skip(Math.Max(0, gh.Count - 5)).Where(x => x >= 0).OrderBy(x => x).ToList();
-                    double shown = okv.Count > 0 ? okv[okv.Count / 2] : -1;   // медиана последних замеров — без скачков
+                    double shown = okv.Count > 0 ? okv[okv.Count / 2] : -1;
                     int fails = gh.Count(x => x < 0);
                     Color gc = gl.Last == -2 ? Theme.GreenDim : gl.Last < 0 ? Theme.Red : (fails * 3 >= Math.Max(1, gh.Count) || shown > 300) ? Theme.Amber : Theme.Green;
                     Theme.Glow(g, gl.Name.ToUpperInvariant(), Theme.Mono(7.5f, FontStyle.Bold), Theme.Orange, new RectangleF(10, y0 + 3, 92, 16), Ui.NoWrap);
@@ -7373,12 +7335,10 @@ namespace Cogitator
         }
     }
 
-    // ============================== ВРАТА: СВОИ ПРОВЕРКИ ==============================
     class Gate
     {
         public string Name = "", Target = "", SpeedUrl = "";
-        public int Kind;   // 0 — HTTPS, 1 — TCP, 2 — PING
-        // результат последней проверки
+        public int Kind;
         public string Status, Detail;
         public char Key = ' ';
         public DateTime At;
@@ -7407,7 +7367,6 @@ namespace Cogitator
             new object[] { "Cloudflare · " + Loc.T("контроль"), 0, "https://www.cloudflare.com/cdn-cgi/trace", "https://speed.cloudflare.com/__down?bytes=2500000" }
         };
 
-        // разбор адреса под любой род проверки: принимает и https://host/path, и host:port, и просто host
         public static void Split(Gate g, out string host, out int port)
         {
             string t = (g.Target ?? "").Trim();
@@ -7430,7 +7389,6 @@ namespace Cogitator
 
         public static string HostOf(Gate g) { string h; int p; Split(g, out h, out p); return h; }
 
-        // как показать адрес в поле при смене рода проверки
         public static string Convert(string target, int kind)
         {
             string h; int p;
@@ -7456,7 +7414,6 @@ namespace Cogitator
             catch { return null; }
         }
 
-        // через туннель или напрямую пойдёт трафик к этому адресу
         public static string Route(string ip, string pattern)
         {
             if (ip == null) return null;
@@ -7475,8 +7432,6 @@ namespace Cogitator
 
         static readonly string TlsCut = Loc.T("обрыв на рукопожатии TLS — так выглядит блокировка по имени сервиса (SNI)");
 
-        // одна попытка. Возвращает время установки соединения (это и есть «пинг» до сервиса) или -1.
-        // Для HTTPS дополнительно проходит рукопожатие TLS с именем сервиса — по нему ТСПУ и режет.
         public static double Probe(Gate g, string ip, int timeout, out string why, out double tlsMs, out bool certBad)
         {
             why = null; tlsMs = -1; certBad = false;
@@ -7600,7 +7555,6 @@ namespace Cogitator
         }
     }
 
-    // ---------- переключатель вариантов ----------
     class ChipBar : CrtControl
     {
         public string[] Options = new string[0];
@@ -7640,7 +7594,6 @@ namespace Cogitator
         }
     }
 
-    // живые данные строки ауспика
     class GateLive
     {
         public string Name;
@@ -7649,7 +7602,6 @@ namespace Cogitator
         public List<double> Hist = new List<double>();
     }
 
-    // ============================== ГЛАВНОЕ ОКНО ==============================
     class MainForm : Form
     {
         [DllImport("uxtheme.dll", CharSet = CharSet.Unicode)] static extern int SetWindowTheme(IntPtr hWnd, string app, string idList);
@@ -7660,7 +7612,6 @@ namespace Cogitator
         Control[] pages;
         HomePage home;
 
-        // испытания
         EmblemPanel emblem;
         MessagePanel msg;
         FramePanel frame;
@@ -7670,7 +7621,6 @@ namespace Cogitator
         CrtButton[] rb;
         bool suppressCombo;
 
-        // святилища
         FramePanel sanctFrame;
         ListBox sanctList;
         CrtField fName, fAddr, fPortS, fNote;
@@ -7679,7 +7629,6 @@ namespace Cogitator
         MessagePanel sanctMsg;
         int editIndex = -1;
 
-        // летопись
         FramePanel chronFrame, viewFrame;
         SummaryPanel summary;
         TableLayoutPanel chronTable;
@@ -7717,7 +7666,7 @@ namespace Cogitator
             {
                 startHidden = false;
                 if (!IsHandleCreated) CreateHandle();
-                value = false;                      // автозапуск: сразу в трей, без мелькания окна
+                value = false;
             }
             base.SetVisibleCore(value);
         }
@@ -7726,7 +7675,6 @@ namespace Cogitator
         {
             startHidden = trayStart;
             Store.LoadAll();
-            // разбор отчётов летописи заранее, в фоне — чтобы сводка и переход в летопись не читали сотни файлов под занавесом
             var chronSnap = Store.Chronicle.ToList();
             ThreadPool.QueueUserWorkItem(_ => { foreach (var en in chronSnap) { try { Store.Metrics(en); } catch { } } });
             SuspendLayout();
@@ -7838,7 +7786,6 @@ namespace Cogitator
             once.Start();
         }
 
-        // ================= СТРАНИЦА: СВЯТИЛИЩА =================
         Control BuildSanctums()
         {
             var page = new PagePanel { Dock = DockStyle.Fill, Padding = new Padding(10, 6, 10, 10) };
@@ -8098,7 +8045,6 @@ namespace Cogitator
             th.Start();
         }
 
-        // ================= СТРАНИЦА: ВРАТА =================
         FramePanel gateFrame;
         ListBox gateList;
         CrtField gName, gTarget, gSpeed;
@@ -8189,7 +8135,7 @@ namespace Cogitator
             if (gateFx == null || !gateFx.Draw(g, gt, b, stR, Theme.Mono(9f, FontStyle.Bold), Ui.NoWrapRight))
                 using (var br = new SolidBrush(gt.Status == null ? Theme.GreenDim : gt.StatusColor))
                     g.DrawString(st, Theme.Mono(9f, FontStyle.Bold), br, stR, Ui.NoWrapRight);
-            bool hidden = gateFx != null && gateFx.BarColor(gt) != null;   // подробности — только после раскрытия итога
+            bool hidden = gateFx != null && gateFx.BarColor(gt) != null;
             string sub = Gate.Kinds[gt.Kind] + "  ·  " + gt.Target + (string.IsNullOrEmpty(gt.Detail) || hidden ? "" : "  ·  " + gt.Detail);
             using (var br = new SolidBrush(Theme.GreenMid))
                 g.DrawString(sub, Theme.Mono(9f, FontStyle.Regular), br, new RectangleF(b.X + 16, b.Y + half - 2, b.Width - 26, half), Ui.NoWrap);
@@ -8376,7 +8322,6 @@ namespace Cogitator
             RefreshHome();
         }
 
-        // ---- строка врат в ауспике ----
         int gateWatchGen;
 
         void RestartGateWatch()
@@ -8403,7 +8348,6 @@ namespace Cogitator
                         string why = null;
                         if (gip == null || (DateTime.Now - resolvedAt).TotalMinutes > 2) { gip = GateCheck.Resolve(GateCheck.HostOf(copy)); resolvedAt = DateTime.Now; }
                         double tlsMs; bool cb;
-                        // сама задержка — голое соединение (как пинг), лучшее из трёх: одиночный замер ловит случайные задержки планировщика
                         double ms = -1;
                         for (int k = 0; k < (copy.Kind == 2 ? 1 : 3); k++)
                         {
@@ -8412,7 +8356,6 @@ namespace Cogitator
                             if (v < 0) why = w;
                             if (v < 0 && k == 0) break;
                         }
-                        // HTTPS: раз в 30 с — полное рукопожатие с именем сервиса, чтобы заметить блокировку по SNI
                         if (copy.Kind == 0 && ms >= 0 && (DateTime.Now - tlsAt).TotalSeconds >= 30)
                         {
                             tlsAt = DateTime.Now;
@@ -8432,7 +8375,6 @@ namespace Cogitator
             }
         }
 
-        // ================= СТРАНИЦА: ИСПЫТАНИЯ =================
         Control BuildTrials()
         {
             var page = new PagePanel { Dock = DockStyle.Fill, Padding = new Padding(10, 6, 0, 0) };
@@ -8553,7 +8495,6 @@ namespace Cogitator
             frame.RightText = Loc.T("РИТУАЛ: —"); frame.Invalidate();
         }
 
-        // ================= СТРАНИЦА: ЛЕТОПИСЬ =================
         Control BuildChronicle()
         {
             var page = new PagePanel { Dock = DockStyle.Fill, Padding = new Padding(10, 6, 10, 8) };
@@ -8685,7 +8626,6 @@ namespace Cogitator
 
         void Colorize(RichTextBox box, string text)
         {
-            // цвета: 1 текст, 2 зелёный, 3 янтарь, 4 красный, 5 тусклый, 6 оранжевый
             var cols = new[] { Theme.Text, Theme.Green, Theme.Amber, Theme.Red, Theme.GreenMid, Theme.Orange };
             var sb = new StringBuilder(text.Length * 2 + 512);
             sb.Append("{\\rtf1\\ansi\\deff0{\\fonttbl{\\f0\\fmodern ").Append(mono.Name).Append(";}}{\\colortbl ;");
@@ -8718,7 +8658,6 @@ namespace Cogitator
             StartRitual(en.Ritual == 9 ? 5 : en.Ritual >= 1 && en.Ritual <= 5 ? en.Ritual : 1);
         }
 
-        // ================= ГЛАВНЫЙ ТЕРМИНАЛ =================
         void RefreshHome()
         {
             var a = Store.ActiveSanctum;
@@ -8760,7 +8699,6 @@ namespace Cogitator
             transTimer.Start();
         }
 
-        // тот же занавес, но для смены вида внутри страницы
         Action transAction;
         void Curtain(string label, Action act)
         {
@@ -8779,7 +8717,7 @@ namespace Cogitator
         {
             transSwitched = true;
             if (transAction != null) { var a = transAction; transAction = null; a(); }
-            else ShowPageNow(transTarget);          // страница строится под занавесом
+            else ShowPageNow(transTarget);
             pages[currentPage].Update();
         }
 
@@ -8849,9 +8787,8 @@ namespace Cogitator
             base.OnKeyDown(e);
         }
 
-        // ================= ЖУРНАЛ =================
         class LogChunk { public string Text; public Color C; public bool Bold; }
-        readonly List<LogChunk> logQueue = new List<LogChunk>();   // List, а не Queue: Queue в .NET Framework живёт в другой сборке
+        readonly List<LogChunk> logQueue = new List<LogChunk>();
         System.Windows.Forms.Timer logTyper;
         bool typeLog;
         int logTick;
@@ -8860,7 +8797,7 @@ namespace Cogitator
         {
             if (logQueue.Count == 0 || IsDisposed) { logTyper.Stop(); return; }
             logTick++;
-            int budget = 3 + (logTick % 5 == 0 ? 0 : 1);   // неровный темп телетайпа
+            int budget = 3 + (logTick % 5 == 0 ? 0 : 1);
             while (budget > 0 && logQueue.Count > 0)
             {
                 var ch = logQueue[0];
@@ -8877,7 +8814,6 @@ namespace Cogitator
 
         void FlushLogTyper()
         {
-            // новый ритуал или очистка — допечатать мгновенно не нужно, просто сбросить очередь
             logQueue.Clear(); if (logTyper != null) logTyper.Stop();
         }
 
@@ -8891,7 +8827,6 @@ namespace Cogitator
             }
             if (typeLog)
             {
-                // приговор печатается посимвольно: в отчёт — сразу, на экран — по таймеру
                 report.AppendLine(string.Concat(parts));
                 for (int i = 0; i < parts.Length; i++) if (parts[i].Length > 0) logQueue.Add(new LogChunk { Text = parts[i], C = colors[i], Bold = bold });
                 logQueue.Add(new LogChunk { Text = "\n", C = Theme.Text, Bold = false });
@@ -8936,7 +8871,6 @@ namespace Cogitator
             AppendParts(new[] { "++ " + title + " ++" }, new[] { Theme.Orange }, true);
         }
 
-        // ================= РИТУАЛ =================
         void SetButtons(bool en)
         {
             foreach (var b in rb) b.Enabled = en;
@@ -8991,7 +8925,7 @@ namespace Cogitator
                 curSanctum.Length > 0 ? Loc.T("СВЯТИЛИЩЕ: ") + curSanctum.ToUpperInvariant() : "", Theme.Green,
                 Litany[litIdx] + "...", Theme.Green,
                 Loc.T("НЕ ТРЕВОЖЬ КОГИТАТОР."), Theme.Orange,
-                Loc.T("ПРОШЛО: ") + sec + Loc.T(" С"), Theme.GreenDim);   // секунды — последней строкой: обновляются, не трогая остальное
+                Loc.T("ПРОШЛО: ") + sec + Loc.T(" С"), Theme.GreenDim);
         }
 
         void Finish(Verdict v)
@@ -9034,7 +8968,6 @@ namespace Cogitator
             AutoDetectAsync(false);
         }
 
-        // ================= СТРАЖ =================
         NotifyIcon tray;
         Icon iconOk, iconAlert;
         System.Windows.Forms.Timer guardTimer;
@@ -9097,7 +9030,6 @@ namespace Cogitator
             }
             Store.Lang = Loc.En ? "ru" : "en";
             Store.SaveSettings();
-            // перезапуск: весь интерфейс собирается заново на новом языке
             string exe = Application.ExecutablePath;
             reallyExit = true;
             Program.ReleaseSingle();
@@ -9138,7 +9070,7 @@ namespace Cogitator
                 try
                 {
                     r = Guardian.Check(pattern);
-                    if (!r.Ok) { Thread.Sleep(3000); r = Guardian.Check(pattern); }   // повтор: защита от ложной тревоги
+                    if (!r.Ok) { Thread.Sleep(3000); r = Guardian.Check(pattern); }
                 }
                 catch { r = new GuardResult(); }
                 try { BeginInvoke(new Action(() => GuardApply(r))); } catch { }
@@ -9250,7 +9182,6 @@ namespace Cogitator
             if (!Store.Guard && !Store.Hud) tray.Visible = false;
         }
 
-        // ================= ТРАФИК ДЛЯ ОСЦИЛЛОГРАФА =================
         bool trafBusy;
         string trafId; long trafRx = -1, trafTx = -1; DateTime trafT;
         int vpnZeroStreak;
@@ -9279,7 +9210,6 @@ namespace Cogitator
                         if (Regex.IsMatch(n.Name + " " + n.Description, "Hyper-V|vEthernet|VirtualBox|VMware|Virtual|Docker|WSL", RegexOptions.IgnoreCase)) score -= 80;
                         if (score > best) { best = score; phys = n; }
                     }
-                    // туннель — если он есть и его счётчики живые; иначе сетевая карта
                     NetworkInterface srcNi = vpn != null && vpnZeroStreak < 4 ? vpn : phys;
                     if (srcNi != null)
                     {
@@ -9312,7 +9242,6 @@ namespace Cogitator
             });
         }
 
-        // ================= АУСПИК =================
         [DllImport("user32.dll")] static extern bool RegisterHotKey(IntPtr h, int id, uint mods, uint vk);
         [DllImport("user32.dll")] static extern bool UnregisterHotKey(IntPtr h, int id);
         [DllImport("user32.dll")] static extern bool DestroyIcon(IntPtr h);
@@ -9325,7 +9254,7 @@ namespace Cogitator
 
         void InitHud()
         {
-            try { RegisterHotKey(Handle, HotkeyId, 0x1 | 0x2 | 0x4000, (uint)Keys.A); } catch { }   // Ctrl+Alt+A, без автоповтора
+            try { RegisterHotKey(Handle, HotkeyId, 0x1 | 0x2 | 0x4000, (uint)Keys.A); } catch { }
             home.HudSwitch.On = Store.Hud;
             home.HudSwitch.Click += (s, e) => SetHud(!Store.Hud);
             if (Store.Hud) SetHud(true);
@@ -9380,7 +9309,6 @@ namespace Cogitator
             if (miHud != null) miHud.Text = Store.Hud ? Loc.T("АУСПИК: ВКЛЮЧЁН (СКРЫТЬ)") : Loc.T("АУСПИК: ВЫКЛЮЧЕН (ПОКАЗАТЬ)");
         }
 
-        // раз в секунду — один пинг по текущему пути (через туннель, если он включён)
         AuspexData hudData;
         System.Windows.Forms.Timer hudWatch;
 
@@ -9388,7 +9316,6 @@ namespace Cogitator
         {
             var d = new AuspexData();
             hudData = d;
-            // режим (туннель / прокси) — своим потоком: перечисление адаптеров при смене сети может висеть секундами
             new Thread(() =>
             {
                 while (hudRun)
@@ -9406,7 +9333,6 @@ namespace Cogitator
             }) { IsBackground = true, Priority = ThreadPriority.BelowNormal }.Start();
             BeginInvoke(new Action(() =>
             {
-                // сторож: если замеры перестали приходить, Ауспик всё равно покажет обрыв
                 if (hudWatch == null)
                 {
                     hudWatch = new System.Windows.Forms.Timer { Interval = 1000 };
@@ -9445,7 +9371,6 @@ namespace Cogitator
             hud.Data = d;
             if (d.Last >= 0 || d.Dead) NoteReading(Loc.T("АУСПИК · ") + (d.Dead ? Loc.T("НЕТ СВЯЗИ") : Math.Round(d.Last) + Loc.T(" МС") + (d.Loss > 0 ? " · " + d.Loss.ToString("0.#", CultureInfo.InvariantCulture) + "%" : "")), d.State);
             hud.Invalidate();
-            // живой пинг в трее
             string txt = d.Dead || d.Last < 0 ? "×" : Math.Min(999, Math.Round(d.Last)).ToString();
             Color c = d.State;
             string key = txt + c.ToArgb();
@@ -9486,7 +9411,6 @@ namespace Cogitator
         {
             if (!Store.Glitch || glitch == null || glitch.Visible || DateTime.Now < nextGlitch) return;
             nextGlitch = DateTime.Now.AddSeconds(10 + glitchRnd.Next(20));
-            // только когда окно на виду и ничего не происходит: не во время перехода, перетаскивания и нажатой мыши
             if (moving || transTarget >= 0 || Form.ActiveForm != this || MouseButtons != MouseButtons.None || WindowState == FormWindowState.Minimized) return;
             try
             {
@@ -9507,7 +9431,6 @@ namespace Cogitator
         const int BeamDur = 1500;
         string lastReading; Color lastReadingCol = Theme.Green; DateTime lastReadingAt = DateTime.MinValue;
 
-        // показание для луча: последнее, что знает когитатор о связи
         void NoteReading(string tag, Color c) { lastReading = tag; lastReadingCol = c; lastReadingAt = DateTime.Now; }
 
         void MaybeBeam(bool fresh)
@@ -9543,7 +9466,7 @@ namespace Cogitator
                 if (beam.Shot != null) { beam.Shot.Dispose(); beam.Shot = null; }
                 return;
             }
-            float e = t < 0.5f ? 2 * t * t : 1 - (float)Math.Pow(-2 * t + 2, 2) / 2;   // плавно в начале и в конце
+            float e = t < 0.5f ? 2 * t * t : 1 - (float)Math.Pow(-2 * t + 2, 2) / 2;
             float cy = -ScanBeam.H + (ClientSize.Height + ScanBeam.H * 2) * e;
             beam.Cy = cy;
             beam.Top = (int)(cy - ScanBeam.H / 2f);
@@ -9566,16 +9489,16 @@ namespace Cogitator
         bool moving;
         protected override void WndProc(ref Message m)
         {
-            if (m.Msg == 0x312 && (int)m.WParam == HotkeyId) SetHud(!Store.Hud);   // Ctrl+Alt+A
-            if (m.Msg == 0x231) moving = true;          // WM_ENTERSIZEMOVE — окно тащат
-            else if (m.Msg == 0x232) moving = false;    // WM_EXITSIZEMOVE
+            if (m.Msg == 0x312 && (int)m.WParam == HotkeyId) SetHud(!Store.Hud);
+            if (m.Msg == 0x231) moving = true;
+            else if (m.Msg == 0x232) moving = false;
             base.WndProc(ref m);
         }
 
         void AnimTick()
         {
             tick++;
-            if (moving || WindowState == FormWindowState.Minimized || !Visible) return;   // не греть процессор впустую
+            if (moving || WindowState == FormWindowState.Minimized || !Visible) return;
             if (guardDown) { nav.Blink++; if (nav.Blink % 4 == 0) { UpdateGuardUi(); } }
             int s = DateTime.Now.Second;
             if (pages[0].Visible && transTarget < 0) home.Tick();
