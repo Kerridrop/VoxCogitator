@@ -20,19 +20,13 @@ jobs:
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
+      - uses: microsoft/setup-msbuild@v2
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
       - name: Build
-        shell: bash
-        run: |
-          set -o pipefail
-          dotnet build Cogitator.csproj -c Release -o out 2>&1 | tee build.log
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: windows-build-log
-          path: build.log
+        shell: pwsh
+        run: msbuild Cogitator.csproj -restore -p:Configuration=Release -p:OutDir=out\
       - uses: actions/upload-artifact@v4
         with:
           name: Cogitator-windows
