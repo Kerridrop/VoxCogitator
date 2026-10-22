@@ -33,7 +33,13 @@ namespace Cogitator
 {
     static class Program
     {
-        public const string Version = "1.0.1";
+        public const string Version = "1.0.2";
+#if STAGE
+        public const string Stage = "-stage";
+#else
+        public const string Stage = "";
+#endif
+        public const string VersionFull = Version + Stage;
 
         [DllImport("user32.dll")] static extern bool SetProcessDPIAware();
 
@@ -288,7 +294,7 @@ namespace Cogitator
             "конечный узел",
             "сеть за VPN-сервером (у хостера)",
             "неизвестно",
-            "IV. ПУТЬ ЧЕРЕЗ ВАРП — pathping до ",
+            "ПУТЬ ЧЕРЕЗ ВАРП — pathping до ",
             " (через туннель)",
             " (в обход туннеля)",
             "VPN работает — трассирую путь ЧЕРЕЗ туннель: первый узел — твой VPN-сервер, дальше сеть за ним.",
@@ -891,8 +897,8 @@ namespace Cogitator
             "ДАЛЬНЯЯ МАГИСТРАЛЬ",
             "   ◄ ЗДЕСЬ НАЧИНАЕТСЯ ПОРЧА",
             "Карта пути: ",
-            "IV. ПУТЬ ДО СВЯТИЛИЩА — дом → провайдер → магистраль → хостер (",
-            "IV-Б. ПУТЬ ЗА СВЯТИЛИЩЕМ — через туннель до 1.1.1.1",
+            "ПУТЬ ДО СВЯТИЛИЩА — дом → провайдер → магистраль → хостер (",
+            "ПУТЬ ЗА СВЯТИЛИЩЕМ — через туннель до 1.1.1.1",
             "Две трассы идут разом: до святилища мимо туннеля и через туннель дальше. Около минуты, не закрывай когитатор.",
             "магистраль за хостером (до сайтов)",
             "ПОРЧА ЗА ПРЕДЕЛАМИ СВЯТИЛИЩА",
@@ -985,7 +991,26 @@ namespace Cogitator
             "ПИК ЗАДЕРЖКИ: ",
             " МС В ",
             "СВОДКА ДОЗОРА АУСПИКА",
-            "ЧАСЫ СУТОК · ПОТЕРИ ПО АУСПИКУ"
+            "ЧАСЫ СУТОК · ПОТЕРИ ПО АУСПИКУ",
+            "ИНТЕРВАЛ ~",
+            "ОПРОС ПАДЕНИЙ: ",
+            " ОБРЫВ(ОВ)",
+            "СЕРВЕР ЖИВ В ОБРЫВЫ — РЕЖЕТ ПРОТОКОЛ (ТСПУ), НЕ СЕРВЕР",
+            "ОБРЫВЫ ЛИПНУТ К РУКОПОЖАТИЮ WG — ЦЕЛЬ DPI: ХЭНДШЕЙК",
+            "СЕРВЕР НЕДОСТУПЕН В ОБРЫВЫ — ПУТЬ ДО СЕРВЕРА / МАГИСТРАЛЬ",
+            "СВЯТИЛИЩЕ НЕ ЗАДАНО — ОПРОС НЕ ЗНАЕТ, КУДА БИТЬ",
+            "Потери на шлюзе туннеля ",
+            "% — но туннель работает: это деприоритизация ICMP самим шлюзом, не реальная потеря.",
+            "% при неподтверждённом туннеле — возможна реальная просадка, проверь ритуалом V.",
+            "Килл-свитч режет входящий ICMP промежуточных узлов — наружную трассу отсюда не построить. Это норма, не поломка.",
+            "Узлы на пути не отвечают на трассировку (ICMP погашен) — это их настройка, не обрыв.",
+            "За святилищем сервер не форвардит trace-ответы — ожидаемо. Интернет через туннель есть, обрыва нет.",
+            "Чтобы увидеть карту дом → провайдер → хостер — выключи VPN (или kill switch) и повтори ритуал III.",
+            "ПУТЬ ДО СВЯТИЛИЩА ОТКРЫТ",
+            "Святилище отвечает, туннель несёт трафик — связь в порядке. Пошаговую карту пути скрывает защита, а не поломка.",
+            "СВЯТИЛИЩЕ ОТВЕЧАЕТ, ПУТЬ НЕ РАЗГЛЯДЕТЬ",
+            "Прямые пробы подтверждают святилище, но трасса пуста — туннель не подтверждён. Запусти ритуал V (перекличка) для потерь.",
+            "Связь не подтверждается и трасса пуста — запусти ритуал IV для полной картины."
         };
 
         static readonly string[] EnS =
@@ -1122,7 +1147,7 @@ namespace Cogitator
             "final node",
             "network behind the VPN server (hoster)",
             "unknown",
-            "IV. PATH THROUGH THE WARP — pathping to ",
+            "PATH THROUGH THE WARP — pathping to ",
             " (through tunnel)",
             " (bypassing tunnel)",
             "VPN works — tracing the path THROUGH the tunnel: the first node is your VPN server, then the network behind it.",
@@ -1725,8 +1750,8 @@ namespace Cogitator
             "FAR BACKBONE",
             "   ◄ THE BLIGHT STARTS HERE",
             "Path map: ",
-            "IV. PATH TO THE SANCTUM — home → ISP → backbone → hoster (",
-            "IV-B. PATH BEYOND THE SANCTUM — through the tunnel to 1.1.1.1",
+            "PATH TO THE SANCTUM — home → ISP → backbone → hoster (",
+            "PATH BEYOND THE SANCTUM — through the tunnel to 1.1.1.1",
             "Two traces run at once: to the sanctum outside the tunnel and onward through it. About a minute, don't close the cogitator.",
             "backbone beyond the hoster (to the sites)",
             "BLIGHT BEYOND THE SANCTUM'S BORDERS",
@@ -1819,7 +1844,26 @@ namespace Cogitator
             "LATENCY PEAK: ",
             " MS AT ",
             "AUSPEX WATCH SUMMARY",
-            "HOURS · LOSS BY AUSPEX"
+            "HOURS · LOSS BY AUSPEX",
+            "INTERVAL ~",
+            "DROP SURVEY: ",
+            " DROP(S)",
+            "SERVER ALIVE IN DROPS — PROTOCOL IS CUT (DPI), NOT THE SERVER",
+            "DROPS ALIGN WITH WG HANDSHAKE — DPI TARGET: THE HANDSHAKE",
+            "SERVER UNREACHABLE IN DROPS — PATH TO SERVER / BACKBONE",
+            "NO SANCTUM SET — SURVEY HAS NO TARGET",
+            "Loss at the tunnel gateway ",
+            "% — but the tunnel works: this is ICMP deprioritization by the gateway itself, not real loss.",
+            "% with the tunnel unconfirmed — possible real loss, check with ritual V.",
+            "The kill switch blocks inbound ICMP from intermediate nodes — the outbound route can't be mapped from here. This is normal, not a fault.",
+            "Nodes on the path don't answer the trace (ICMP suppressed) — that's their config, not a break.",
+            "Beyond the sanctum the server doesn't forward trace replies — expected. The internet through the tunnel works, there's no break.",
+            "To see the home → ISP → hoster map, turn off the VPN (or kill switch) and repeat ritual III.",
+            "PATH TO THE SANCTUM IS OPEN",
+            "The sanctum answers and the tunnel carries traffic — the link is fine. The hop-by-hop map is hidden by protection, not a fault.",
+            "SANCTUM ANSWERS, PATH NOT VISIBLE",
+            "Direct probes confirm the sanctum, but the trace is empty — the tunnel isn't confirmed. Run ritual V (roll call) for loss.",
+            "The link isn't confirmed and the trace is empty — run ritual IV for the full picture."
         };
     }
 
@@ -1977,7 +2021,8 @@ namespace Cogitator
                         double r = rnd.NextDouble();
                         if (r < 0.09) c = Color.FromArgb(rnd.Next(6, 15), 120, 255, 140);
                         else if (r < 0.12) c = Color.FromArgb(rnd.Next(12, 30), 0, 0, 0);
-                        if (y % 3 == 0) c = Color.FromArgb(Math.Min(255, c.A + 30), 0, 0, 0);
+                        if (y % 3 == 0) c = Color.FromArgb(Math.Min(255, c.A + 60), 0, 0, 0);
+                        else if (y % 3 == 1) c = Color.FromArgb(Math.Min(255, c.A + 30), 0, 0, 0);
                         if (c.A > 0) bmp.SetPixel(x, y, c);
                     }
                 overlay = new TextureBrush(bmp, WrapMode.Tile);
@@ -2144,7 +2189,7 @@ namespace Cogitator
             Theme.Box(g, sb, StatusColor, 1.4f);
             Theme.Glow(g, Status, f, StatusColor, sb, Theme.Center);
             using (var vb = new SolidBrush(Theme.GreenDim))
-                g.DrawString("v" + Program.Version, Theme.Mono(8f, FontStyle.Bold), vb, new RectangleF(sb.X - 86, sb.Y, 80, bh), Ui.NoWrapRight);
+                g.DrawString("v" + Program.VersionFull, Theme.Mono(8f, FontStyle.Bold), vb, new RectangleF(sb.X - 116, sb.Y, 110, bh), Ui.NoWrapRight);
         }
     }
 
@@ -3053,7 +3098,7 @@ namespace Cogitator
             else L("warn", Loc.T("В обход туннеля интернета тоже нет: либо его закрывает kill switch, либо проблема у роутера или провайдера."));
         }
 
-        static bool TcpOk(string host, int port, int timeout)
+        public static bool TcpOk(string host, int port, int timeout)
         {
             try
             {
@@ -3068,7 +3113,7 @@ namespace Cogitator
             catch { return false; }
         }
 
-        static string ResolveIp(string h)
+        public static string ResolveIp(string h)
         {
             IPAddress a;
             if (IPAddress.TryParse(h, out a)) return a.ToString();
@@ -3800,9 +3845,9 @@ namespace Cogitator
             var legs = new List<Leg>();
             if (serverIp != null || !pathViaTunnel)
                 legs.Add(new Leg { Target = serverIp ?? "1.1.1.1", Tunnel = false,
-                    Title = serverIp != null ? Loc.T("IV. ПУТЬ ДО СВЯТИЛИЩА — дом → провайдер → магистраль → хостер (") + serverIp + ")" : Loc.T("IV. ПУТЬ ЧЕРЕЗ ВАРП — pathping до ") + "1.1.1.1" });
+                    Title = serverIp != null ? Loc.T("ПУТЬ ДО СВЯТИЛИЩА — дом → провайдер → магистраль → хостер (") + serverIp + ")" : Loc.T("ПУТЬ ЧЕРЕЗ ВАРП — pathping до ") + "1.1.1.1" });
             if (pathViaTunnel)
-                legs.Add(new Leg { Target = "1.1.1.1", Tunnel = true, Title = Loc.T("IV-Б. ПУТЬ ЗА СВЯТИЛИЩЕМ — через туннель до 1.1.1.1") });
+                legs.Add(new Leg { Target = "1.1.1.1", Tunnel = true, Title = Loc.T("ПУТЬ ЗА СВЯТИЛИЩЕМ — через туннель до 1.1.1.1") });
             L("info", legs.Count > 1 ? Loc.T("Две трассы идут разом: до святилища мимо туннеля и через туннель дальше. Около минуты, не закрывай когитатор.") : Loc.T("Трассировка займёт около минуты. Не закрывай когитатор."));
 
             string serverAsn = AsnOf(serverIp);
@@ -4224,10 +4269,30 @@ namespace Cogitator
             if (!ppRan) return V(Loc.T("ТРАССИРОВКА НЕ УДАЛАСЬ"), Loc.T("pathping не запустился"), Theme.Amber, ppText);
             if (ppProblem) return OwnerVerdict(ppOwner, ppText, ppOwner == Owner.None ? Theme.Red : Theme.Amber);
             if (ppHidden)
-                return V(Loc.T("ПУТЬ СКРЫТ ТУМАНОМ"), Loc.T("Связь есть, но узлы на пути не отвечают на трассировку — где именно порча, отсюда не разглядеть"), Theme.Amber,
-                    ppText,
-                    vpnUp ? Loc.T("Выключи VPN (или kill switch) и повтори ритуал III — трасса до сервера покажет участки дом → провайдер → хостер.") : null,
-                    Loc.T("Перекличка пакетов (V) покажет, есть ли потери вообще."));
+            {
+                var tl = Legs != null ? Legs.FirstOrDefault(l => l.Tunnel) : null;
+                int gwLoss = tl != null && tl.Hops.Count > 0 ? tl.Hops[0].Loss : -1;
+                string gwHint = gwLoss >= 15
+                    ? (pathViaTunnel
+                        ? Loc.T("Потери на шлюзе туннеля ") + gwLoss + Loc.T("% — но туннель работает: это деприоритизация ICMP самим шлюзом, не реальная потеря.")
+                        : Loc.T("Потери на шлюзе туннеля ") + gwLoss + Loc.T("% при неподтверждённом туннеле — возможна реальная просадка, проверь ритуалом V."))
+                    : null;
+                string ks = killSwitch
+                    ? Loc.T("Килл-свитч режет входящий ICMP промежуточных узлов — наружную трассу отсюда не построить. Это норма, не поломка.")
+                    : Loc.T("Узлы на пути не отвечают на трассировку (ICMP погашен) — это их настройка, не обрыв.");
+                string beyond = pathViaTunnel ? Loc.T("За святилищем сервер не форвардит trace-ответы — ожидаемо. Интернет через туннель есть, обрыва нет.") : null;
+                string mapHint = vpnUp ? Loc.T("Чтобы увидеть карту дом → провайдер → хостер — выключи VPN (или kill switch) и повтори ритуал III.") : null;
+                string roll = Loc.T("Перекличка пакетов (V) покажет, есть ли потери вообще.");
+                bool reach = pathViaTunnel || sshOk || serverReachable;
+                if (pathViaTunnel && reach)
+                    return V(Loc.T("ПУТЬ ДО СВЯТИЛИЩА ОТКРЫТ"), Loc.T("Святилище отвечает, туннель несёт трафик — связь в порядке. Пошаговую карту пути скрывает защита, а не поломка."), Theme.Green,
+                        ks, beyond, gwHint, mapHint, roll);
+                if (reach)
+                    return V(Loc.T("СВЯТИЛИЩЕ ОТВЕЧАЕТ, ПУТЬ НЕ РАЗГЛЯДЕТЬ"), Loc.T("Прямые пробы подтверждают святилище, но трасса пуста — туннель не подтверждён. Запусти ритуал V (перекличка) для потерь."), Theme.Amber,
+                        ks, gwHint, mapHint, roll);
+                return V(Loc.T("ПУТЬ СКРЫТ ТУМАНОМ"), Loc.T("Связь не подтверждается и трасса пуста — запусти ритуал IV для полной картины."), Theme.Amber,
+                    ks, mapHint, roll);
+            }
             return V(Loc.T("ПУТЬ ЧИСТ"), Loc.T("Потерь на маршруте нет"), Theme.Green, ppText);
         }
 
@@ -6371,6 +6436,31 @@ namespace Cogitator
                 if (worst != null && worst.Max > median * 2 && worst.Max > 120)
                     axFindings.Add(new KeyValuePair<string, Color>(Loc.T("ПИК ЗАДЕРЖКИ: ") + Math.Round(worst.Max) + Loc.T(" МС В ") + worst.When.ToString("dd.MM HH:mm"), Theme.Amber));
             }
+
+            var drops = DropLog.Load(from, to);
+            if (drops.Count > 0)
+            {
+                var gaps = drops.Where(x => x.GapSec > 0).Select(x => x.GapSec).OrderBy(x => x).ToList();
+                int medGap = gaps.Count > 0 ? gaps[gaps.Count / 2] : 0;
+                string gapTxt = medGap > 0 ? " · " + Loc.T("ИНТЕРВАЛ ~") + (medGap / 60) + ":" + (medGap % 60).ToString("00") : "";
+                axFindings.Add(new KeyValuePair<string, Color>(Loc.T("ОПРОС ПАДЕНИЙ: ") + drops.Count + Loc.T(" ОБРЫВ(ОВ)") + gapTxt, Theme.Amber));
+                var probed = drops.Where(x => x.Probed == 1).ToList();
+                if (probed.Count > 0)
+                {
+                    int alive = probed.Count(x => x.ServerUp);
+                    if (alive * 2 >= probed.Count)
+                    {
+                        axFindings.Add(new KeyValuePair<string, Color>(Loc.T("СЕРВЕР ЖИВ В ОБРЫВЫ — РЕЖЕТ ПРОТОКОЛ (ТСПУ), НЕ СЕРВЕР"), Theme.Red));
+                        int near = 0; foreach (var g in gaps) { int m = g % 120; if (m <= 20 || m >= 100) near++; }
+                        if (gaps.Count >= 3 && near * 2 >= gaps.Count)
+                            axFindings.Add(new KeyValuePair<string, Color>(Loc.T("ОБРЫВЫ ЛИПНУТ К РУКОПОЖАТИЮ WG — ЦЕЛЬ DPI: ХЭНДШЕЙК"), Theme.Amber));
+                    }
+                    else
+                        axFindings.Add(new KeyValuePair<string, Color>(Loc.T("СЕРВЕР НЕДОСТУПЕН В ОБРЫВЫ — ПУТЬ ДО СЕРВЕРА / МАГИСТРАЛЬ"), Theme.Red));
+                }
+                else if (drops.Any(x => x.Probed == -1))
+                    axFindings.Add(new KeyValuePair<string, Color>(Loc.T("СВЯТИЛИЩЕ НЕ ЗАДАНО — ОПРОС НЕ ЗНАЕТ, КУДА БИТЬ"), Theme.GreenDim));
+            }
         }
 
         protected override void OnMouseMove(MouseEventArgs e)
@@ -7032,6 +7122,93 @@ namespace Cogitator
         }
     }
 
+    class Drop
+    {
+        public DateTime Start;
+        public int DurSec, GapSec, Probed;
+        public bool ServerUp, SshUp;
+    }
+
+    static class DropLog
+    {
+        static string FileP { get { return Path.Combine(Store.Dir, "drops.tsv"); } }
+        static readonly object sync = new object();
+        static DateTime lastStart = DateTime.MinValue;
+
+        public static Drop Begin(DateTime start)
+        {
+            var d = new Drop { Start = start };
+            lock (sync)
+            {
+                if (lastStart != DateTime.MinValue)
+                {
+                    int g = (int)(start - lastStart).TotalSeconds;
+                    if (g > 0 && g < 86400) d.GapSec = g;
+                }
+                lastStart = start;
+            }
+            return d;
+        }
+
+        public static void Probe(Drop d)
+        {
+            try
+            {
+                var s = Store.ActiveSanctum;
+                if (s == null || string.IsNullOrEmpty(s.Addr)) { d.Probed = -1; return; }
+                string ip = Diag.ResolveIp(s.Addr);
+                if (ip == null) { d.Probed = -1; return; }
+                bool ping = false;
+                try { using (var p = new Ping()) { var r = p.Send(ip, 2000); ping = r.Status == IPStatus.Success; } } catch { }
+                bool ssh = Diag.TcpOk(ip, s.Port, 2500);
+                bool https = Diag.TcpOk(ip, 443, 2500);
+                d.SshUp = ssh;
+                d.ServerUp = ping || ssh || https;
+                d.Probed = 1;
+            }
+            catch { d.Probed = 1; }
+        }
+
+        public static void End(Drop d, DateTime end)
+        {
+            d.DurSec = Math.Max(1, (int)(end - d.Start).TotalSeconds);
+            try
+            {
+                Directory.CreateDirectory(Store.Dir);
+                string line = d.Start.ToString("yyyyMMdd HHmmss", CultureInfo.InvariantCulture) + "\t" + d.DurSec + "\t" +
+                    d.Probed + "\t" + (d.ServerUp ? 1 : 0) + "\t" + (d.SshUp ? 1 : 0) + "\t" + d.GapSec;
+                lock (sync) File.AppendAllText(FileP, line + "\n");
+            }
+            catch { }
+        }
+
+        public static List<Drop> Load(DateTime from, DateTime to)
+        {
+            var res = new List<Drop>();
+            try
+            {
+                if (!File.Exists(FileP)) return res;
+                string[] lines; lock (sync) lines = File.ReadAllLines(FileP);
+                foreach (var ln in lines)
+                {
+                    var c = ln.Split(new[] { '\t' }); if (c.Length < 6) continue;
+                    DateTime w;
+                    if (!DateTime.TryParseExact(c[0], "yyyyMMdd HHmmss", CultureInfo.InvariantCulture, DateTimeStyles.None, out w)) continue;
+                    if (w < from || w > to) continue;
+                    var d = new Drop { Start = w };
+                    int.TryParse(c[1], out d.DurSec);
+                    int.TryParse(c[2], out d.Probed);
+                    int su; int.TryParse(c[3], out su); d.ServerUp = su == 1;
+                    int sh; int.TryParse(c[4], out sh); d.SshUp = sh == 1;
+                    int.TryParse(c[5], out d.GapSec);
+                    res.Add(d);
+                }
+            }
+            catch { }
+            return res;
+        }
+    }
+
     class AuspexData
 
     {
@@ -7185,6 +7362,8 @@ namespace Cogitator
             ContextMenuStrip = menu;
             hintTimer = new System.Windows.Forms.Timer { Interval = 1200 };
             hintTimer.Tick += (s, e) => { hintTimer.Stop(); hint = false; Invalidate(); };
+            axAnim = new System.Windows.Forms.Timer { Interval = 30 };
+            axAnim.Tick += (s, e) => AxAnimStep();
         }
 
         public CrtSlider Slider;
@@ -7209,6 +7388,19 @@ namespace Cogitator
             pf.Slider.Focus();
         }
         bool hint;
+        System.Windows.Forms.Timer axAnim;
+        string axBig;
+        int axReveal, axCat = -99;
+        DateTime axFlash = DateTime.MinValue;
+
+        void AxAnimStep()
+        {
+            bool busy = false;
+            if (axBig != null && axReveal < axBig.Length) { axReveal = Math.Min(axBig.Length, axReveal + 2); busy = true; }
+            if ((DateTime.Now - axFlash).TotalMilliseconds < 600) busy = true;
+            Invalidate();
+            if (!busy) axAnim.Stop();
+        }
 
         void ApplyOpacity(int v)
         {
@@ -7259,9 +7451,18 @@ namespace Cogitator
             using (var b = new SolidBrush(Theme.GreenDim))
                 g.DrawString(d.Vpn ? Loc.T("ТУННЕЛЬ") : d.Proxy ? Loc.T("ПРОКСИ") : Loc.T("НАПРЯМУЮ"), Theme.Mono(7.5f, FontStyle.Bold), b, new RectangleF(0, 6, Width - 14, 14), Theme.Right);
 
-            string big = d.Last == -2 ? "···" : d.Dead ? Loc.T("НЕТ СВЯЗИ") : d.Last < 0 ? "×" : Math.Round(d.Last).ToString();
+            int cat = d.Last == -2 ? 0 : d.Dead ? 1 : d.Last < 0 ? 2 : 3;
+            string big = cat == 0 ? "···" : cat == 1 ? Loc.T("НЕТ СВЯЗИ") : cat == 2 ? "×" : Math.Round(d.Last).ToString();
+            if (cat != axCat) { axCat = cat; axBig = big; axReveal = 0; axFlash = DateTime.Now; if (!axAnim.Enabled) axAnim.Start(); }
+            else { axBig = big; axReveal = big.Length; }
+            string bigDraw = axReveal < big.Length ? big.Substring(0, axReveal) : big;
             var bf = d.Dead ? Theme.Title(13f) : Theme.Title(20f);
-            Theme.Glow(g, big, bf, st, new RectangleF(10, 18, 120, 34), Theme.Left);
+            Theme.Glow(g, bigDraw, bf, st, new RectangleF(10, 18, 120, 34), Theme.Left);
+            if (axReveal < big.Length && (int)((DateTime.Now - axFlash).TotalMilliseconds / 130) % 2 == 0)
+            {
+                float cw = bigDraw.Length > 0 ? g.MeasureString(bigDraw, bf).Width : 0;
+                using (var b = new SolidBrush(Color.FromArgb(210, st))) g.FillRectangle(b, 11 + cw, 22, 7, 22);
+            }
             if (d.Last >= 0 && !d.Dead)
             {
                 float bw = g.MeasureString(big, bf).Width;
@@ -9310,6 +9511,8 @@ namespace Cogitator
         }
 
         AuspexData hudData;
+        bool axWasDead;
+        Drop axCurDrop;
         System.Windows.Forms.Timer hudWatch;
 
         void HudLoop()
@@ -9352,6 +9555,19 @@ namespace Cogitator
                     d.Last = v;
                     d.At = DateTime.Now;
                     d.MissStreak = v < 0 ? d.MissStreak + 1 : 0;
+                    bool deadNow = d.MissStreak >= 2;
+                    if (deadNow && !axWasDead)
+                    {
+                        axCurDrop = DropLog.Begin(DateTime.Now.AddSeconds(-2));
+                        var dd = axCurDrop;
+                        new Thread(() => DropLog.Probe(dd)) { IsBackground = true }.Start();
+                    }
+                    else if (!deadNow && axWasDead && axCurDrop != null)
+                    {
+                        DropLog.End(axCurDrop, DateTime.Now);
+                        axCurDrop = null;
+                    }
+                    axWasDead = deadNow;
                     List<double> last; lock (d.Hist) last = d.Hist.Skip(Math.Max(0, d.Hist.Count - 30)).ToList();
                     d.Loss = Math.Round(100.0 * last.Count(x => x < 0) / last.Count, 1);
                     var ok = last.Where(x => x >= 0).ToList();

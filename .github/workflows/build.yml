@@ -2,7 +2,7 @@ name: build
 
 on:
   push:
-    branches: [master]
+    branches: [master, dev]
     tags: ['v*']
   pull_request:
   workflow_dispatch:
@@ -25,7 +25,12 @@ jobs:
       - name: Build
         run: |
           mkdir -p out
-          mcs -sdk:4.5 -target:winexe -platform:anycpu -optimize+ -codepage:utf8 \
+          STAGE=""
+          case "$GITHUB_REF" in
+            refs/heads/master|refs/tags/*) STAGE="" ;;
+            *) STAGE="-define:STAGE" ;;
+          esac
+          mcs -sdk:4.5 -target:winexe -platform:anycpu -optimize+ -codepage:utf8 $STAGE \
             -win32icon:assets/cog.ico \
             -resource:assets/fonts/FSEX.ttf,FSEX.ttf -resource:assets/fonts/CogDOS.ttf,CogDOS.ttf \
             -r:System.Windows.Forms.dll -r:System.Drawing.dll \
