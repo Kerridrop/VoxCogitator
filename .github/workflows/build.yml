@@ -18,10 +18,11 @@ permissions:
 jobs:
   windows:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - name: Install Mono
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends mono-complete
+        run: sudo DEBIAN_FRONTEND=noninteractive apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends mono-complete
       - name: Build
         run: |
           mkdir -p out
