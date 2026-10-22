@@ -34,6 +34,12 @@ namespace Cogitator
     static class Program
     {
         public const string Version = "1.0.1";
+#if STAGE
+        public const string Stage = "-stage";
+#else
+        public const string Stage = "";
+#endif
+        public const string VersionFull = Version + Stage;
 
         [DllImport("user32.dll")] static extern bool SetProcessDPIAware();
 
@@ -1991,7 +1997,8 @@ namespace Cogitator
                         double r = rnd.NextDouble();
                         if (r < 0.09) c = Color.FromArgb(rnd.Next(6, 15), 120, 255, 140);
                         else if (r < 0.12) c = Color.FromArgb(rnd.Next(12, 30), 0, 0, 0);
-                        if (y % 3 == 0) c = Color.FromArgb(Math.Min(255, c.A + 30), 0, 0, 0);
+                        if (y % 3 == 0) c = Color.FromArgb(Math.Min(255, c.A + 60), 0, 0, 0);
+                        else if (y % 3 == 1) c = Color.FromArgb(Math.Min(255, c.A + 30), 0, 0, 0);
                         if (c.A > 0) bmp.SetPixel(x, y, c);
                     }
                 overlay = new TextureBrush(bmp, WrapMode.Tile);
@@ -2158,7 +2165,7 @@ namespace Cogitator
             Theme.Box(g, sb, StatusColor, 1.4f);
             Theme.Glow(g, Status, f, StatusColor, sb, Theme.Center);
             using (var vb = new SolidBrush(Theme.GreenDim))
-                g.DrawString("v" + Program.Version, Theme.Mono(8f, FontStyle.Bold), vb, new RectangleF(sb.X - 86, sb.Y, 80, bh), Ui.NoWrapRight);
+                g.DrawString("v" + Program.VersionFull, Theme.Mono(8f, FontStyle.Bold), vb, new RectangleF(sb.X - 116, sb.Y, 110, bh), Ui.NoWrapRight);
         }
     }
 
