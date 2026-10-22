@@ -985,7 +985,14 @@ namespace Cogitator
             "ПИК ЗАДЕРЖКИ: ",
             " МС В ",
             "СВОДКА ДОЗОРА АУСПИКА",
-            "ЧАСЫ СУТОК · ПОТЕРИ ПО АУСПИКУ"
+            "ЧАСЫ СУТОК · ПОТЕРИ ПО АУСПИКУ",
+            "ИНТЕРВАЛ ~",
+            "ОПРОС ПАДЕНИЙ: ",
+            " ОБРЫВ(ОВ)",
+            "СЕРВЕР ЖИВ В ОБРЫВЫ — РЕЖЕТ ПРОТОКОЛ (ТСПУ), НЕ СЕРВЕР",
+            "ОБРЫВЫ ЛИПНУТ К РУКОПОЖАТИЮ WG — ЦЕЛЬ DPI: ХЭНДШЕЙК",
+            "СЕРВЕР НЕДОСТУПЕН В ОБРЫВЫ — ПУТЬ ДО СЕРВЕРА / МАГИСТРАЛЬ",
+            "СВЯТИЛИЩЕ НЕ ЗАДАНО — ОПРОС НЕ ЗНАЕТ, КУДА БИТЬ"
         };
 
         static readonly string[] EnS =
@@ -1819,7 +1826,14 @@ namespace Cogitator
             "LATENCY PEAK: ",
             " MS AT ",
             "AUSPEX WATCH SUMMARY",
-            "HOURS · LOSS BY AUSPEX"
+            "HOURS · LOSS BY AUSPEX",
+            "INTERVAL ~",
+            "DROP SURVEY: ",
+            " DROP(S)",
+            "SERVER ALIVE IN DROPS — PROTOCOL IS CUT (DPI), NOT THE SERVER",
+            "DROPS ALIGN WITH WG HANDSHAKE — DPI TARGET: THE HANDSHAKE",
+            "SERVER UNREACHABLE IN DROPS — PATH TO SERVER / BACKBONE",
+            "NO SANCTUM SET — SURVEY HAS NO TARGET"
         };
     }
 
@@ -3053,7 +3067,7 @@ namespace Cogitator
             else L("warn", Loc.T("В обход туннеля интернета тоже нет: либо его закрывает kill switch, либо проблема у роутера или провайдера."));
         }
 
-        static bool TcpOk(string host, int port, int timeout)
+        public static bool TcpOk(string host, int port, int timeout)
         {
             try
             {
@@ -3068,7 +3082,7 @@ namespace Cogitator
             catch { return false; }
         }
 
-        static string ResolveIp(string h)
+        public static string ResolveIp(string h)
         {
             IPAddress a;
             if (IPAddress.TryParse(h, out a)) return a.ToString();
@@ -6371,6 +6385,31 @@ namespace Cogitator
                 if (worst != null && worst.Max > median * 2 && worst.Max > 120)
                     axFindings.Add(new KeyValuePair<string, Color>(Loc.T("ПИК ЗАДЕРЖКИ: ") + Math.Round(worst.Max) + Loc.T(" МС В ") + worst.When.ToString("dd.MM HH:mm"), Theme.Amber));
             }
+
+            var drops = DropLog.Load(from, to);
+            if (drops.Count > 0)
+            {
+                var gaps = drops.Where(x => x.GapSec > 0).Select(x => x.GapSec).OrderBy(x => x).ToList();
+                int medGap = gaps.Count > 0 ? gaps[gaps.Count / 2] : 0;
+                string gapTxt = medGap > 0 ? " · " + Loc.T("ИНТЕРВАЛ ~") + (medGap / 60) + ":" + (medGap % 60).ToString("00") : "";
+                axFindings.Add(new KeyValuePair<string, Color>(Loc.T("ОПРОС ПАДЕНИЙ: ") + drops.Count + Loc.T(" ОБРЫВ(ОВ)") + gapTxt, Theme.Amber));
+                var probed = drops.Where(x => x.Probed == 1).ToList();
+                if (probed.Count > 0)
+                {
+                    int alive = probed.Count(x => x.ServerUp);
+                    if (alive * 2 >= probed.Count)
+                    {
+                        axFindings.Add(new KeyValuePair<string, Color>(Loc.T("СЕРВЕР ЖИВ В ОБРЫВЫ — РЕЖЕТ ПРОТОКОЛ (ТСПУ), НЕ СЕРВЕР"), Theme.Red));
+                        int near = 0; foreach (var g in gaps) { int m = g % 120; if (m <= 20 || m >= 100) near++; }
+                        if (gaps.Count >= 3 && near * 2 >= gaps.Count)
+                            axFindings.Add(new KeyValuePair<string, Color>(Loc.T("ОБРЫВЫ ЛИПНУТ К РУКОПОЖАТИЮ WG — ЦЕЛЬ DPI: ХЭНДШЕЙК"), Theme.Amber));
+                    }
+                    else
+                        axFindings.Add(new KeyValuePair<string, Color>(Loc.T("СЕРВЕР НЕДОСТУПЕН В ОБРЫВЫ — ПУТЬ ДО СЕРВЕРА / МАГИСТРАЛЬ"), Theme.Red));
+                }
+                else if (drops.Any(x => x.Probed == -1))
+                    axFindings.Add(new KeyValuePair<string, Color>(Loc.T("СВЯТИЛИЩЕ НЕ ЗАДАНО — ОПРОС НЕ ЗНАЕТ, КУДА БИТЬ"), Theme.GreenDim));
+            }
         }
 
         protected override void OnMouseMove(MouseEventArgs e)
@@ -7025,6 +7064,93 @@ namespace Cogitator
                         int.TryParse(c[6], out m.Mode);
                         if (m.Sent > 0) res.Add(m);
                     }
+                }
+            }
+            catch { }
+            return res;
+        }
+    }
+
+    class Drop
+    {
+        public DateTime Start;
+        public int DurSec, GapSec, Probed;
+        public bool ServerUp, SshUp;
+    }
+
+    static class DropLog
+    {
+        static string FileP { get { return Path.Combine(Store.Dir, "drops.tsv"); } }
+        static readonly object sync = new object();
+        static DateTime lastStart = DateTime.MinValue;
+
+        public static Drop Begin(DateTime start)
+        {
+            var d = new Drop { Start = start };
+            lock (sync)
+            {
+                if (lastStart != DateTime.MinValue)
+                {
+                    int g = (int)(start - lastStart).TotalSeconds;
+                    if (g > 0 && g < 86400) d.GapSec = g;
+                }
+                lastStart = start;
+            }
+            return d;
+        }
+
+        public static void Probe(Drop d)
+        {
+            try
+            {
+                var s = Store.ActiveSanctum;
+                if (s == null || string.IsNullOrEmpty(s.Addr)) { d.Probed = -1; return; }
+                string ip = Diag.ResolveIp(s.Addr);
+                if (ip == null) { d.Probed = -1; return; }
+                bool ping = false;
+                try { using (var p = new Ping()) { var r = p.Send(ip, 2000); ping = r.Status == IPStatus.Success; } } catch { }
+                bool ssh = Diag.TcpOk(ip, s.Port, 2500);
+                bool https = Diag.TcpOk(ip, 443, 2500);
+                d.SshUp = ssh;
+                d.ServerUp = ping || ssh || https;
+                d.Probed = 1;
+            }
+            catch { d.Probed = 1; }
+        }
+
+        public static void End(Drop d, DateTime end)
+        {
+            d.DurSec = Math.Max(1, (int)(end - d.Start).TotalSeconds);
+            try
+            {
+                Directory.CreateDirectory(Store.Dir);
+                string line = d.Start.ToString("yyyyMMdd HHmmss", CultureInfo.InvariantCulture) + "\t" + d.DurSec + "\t" +
+                    d.Probed + "\t" + (d.ServerUp ? 1 : 0) + "\t" + (d.SshUp ? 1 : 0) + "\t" + d.GapSec;
+                lock (sync) File.AppendAllText(FileP, line + "\n");
+            }
+            catch { }
+        }
+
+        public static List<Drop> Load(DateTime from, DateTime to)
+        {
+            var res = new List<Drop>();
+            try
+            {
+                if (!File.Exists(FileP)) return res;
+                string[] lines; lock (sync) lines = File.ReadAllLines(FileP);
+                foreach (var ln in lines)
+                {
+                    var c = ln.Split(new[] { '\t' }); if (c.Length < 6) continue;
+                    DateTime w;
+                    if (!DateTime.TryParseExact(c[0], "yyyyMMdd HHmmss", CultureInfo.InvariantCulture, DateTimeStyles.None, out w)) continue;
+                    if (w < from || w > to) continue;
+                    var d = new Drop { Start = w };
+                    int.TryParse(c[1], out d.DurSec);
+                    int.TryParse(c[2], out d.Probed);
+                    int su; int.TryParse(c[3], out su); d.ServerUp = su == 1;
+                    int sh; int.TryParse(c[4], out sh); d.SshUp = sh == 1;
+                    int.TryParse(c[5], out d.GapSec);
+                    res.Add(d);
                 }
             }
             catch { }
@@ -9334,6 +9460,8 @@ namespace Cogitator
         }
 
         AuspexData hudData;
+        bool axWasDead;
+        Drop axCurDrop;
         System.Windows.Forms.Timer hudWatch;
 
         void HudLoop()
@@ -9376,6 +9504,19 @@ namespace Cogitator
                     d.Last = v;
                     d.At = DateTime.Now;
                     d.MissStreak = v < 0 ? d.MissStreak + 1 : 0;
+                    bool deadNow = d.MissStreak >= 2;
+                    if (deadNow && !axWasDead)
+                    {
+                        axCurDrop = DropLog.Begin(DateTime.Now.AddSeconds(-2));
+                        var dd = axCurDrop;
+                        new Thread(() => DropLog.Probe(dd)) { IsBackground = true }.Start();
+                    }
+                    else if (!deadNow && axWasDead && axCurDrop != null)
+                    {
+                        DropLog.End(axCurDrop, DateTime.Now);
+                        axCurDrop = null;
+                    }
+                    axWasDead = deadNow;
                     List<double> last; lock (d.Hist) last = d.Hist.Skip(Math.Max(0, d.Hist.Count - 30)).ToList();
                     d.Loss = Math.Round(100.0 * last.Count(x => x < 0) / last.Count, 1);
                     var ok = last.Where(x => x >= 0).ToList();
