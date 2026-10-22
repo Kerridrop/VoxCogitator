@@ -39,7 +39,7 @@ jobs:
             -win32icon:assets/cog.ico \
             -resource:assets/fonts/FSEX.ttf,FSEX.ttf -resource:assets/fonts/CogDOS.ttf,CogDOS.ttf \
             -r:System.Windows.Forms.dll -r:System.Drawing.dll \
-            -out:out/Cogitator.exe src/Cogitator.cs
+            -out:out/Cogitator.exe src/Cogitator.cs src/Loc.Strings.cs src/Theme.cs src/Core.cs
       - uses: actions/upload-artifact@v4
         with:
           name: Cogitator-windows
