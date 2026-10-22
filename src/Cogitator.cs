@@ -7362,8 +7362,6 @@ namespace Cogitator
             ContextMenuStrip = menu;
             hintTimer = new System.Windows.Forms.Timer { Interval = 1200 };
             hintTimer.Tick += (s, e) => { hintTimer.Stop(); hint = false; Invalidate(); };
-            axAnim = new System.Windows.Forms.Timer { Interval = 30 };
-            axAnim.Tick += (s, e) => AxAnimStep();
         }
 
         public CrtSlider Slider;
@@ -7388,19 +7386,6 @@ namespace Cogitator
             pf.Slider.Focus();
         }
         bool hint;
-        System.Windows.Forms.Timer axAnim;
-        string axBig;
-        int axReveal, axCat = -99;
-        DateTime axFlash = DateTime.MinValue;
-
-        void AxAnimStep()
-        {
-            bool busy = false;
-            if (axBig != null && axReveal < axBig.Length) { axReveal = Math.Min(axBig.Length, axReveal + 2); busy = true; }
-            if ((DateTime.Now - axFlash).TotalMilliseconds < 600) busy = true;
-            Invalidate();
-            if (!busy) axAnim.Stop();
-        }
 
         void ApplyOpacity(int v)
         {
@@ -7451,18 +7436,9 @@ namespace Cogitator
             using (var b = new SolidBrush(Theme.GreenDim))
                 g.DrawString(d.Vpn ? Loc.T("ТУННЕЛЬ") : d.Proxy ? Loc.T("ПРОКСИ") : Loc.T("НАПРЯМУЮ"), Theme.Mono(7.5f, FontStyle.Bold), b, new RectangleF(0, 6, Width - 14, 14), Theme.Right);
 
-            int cat = d.Last == -2 ? 0 : d.Dead ? 1 : d.Last < 0 ? 2 : 3;
-            string big = cat == 0 ? "···" : cat == 1 ? Loc.T("НЕТ СВЯЗИ") : cat == 2 ? "×" : Math.Round(d.Last).ToString();
-            if (cat != axCat) { axCat = cat; axBig = big; axReveal = 0; axFlash = DateTime.Now; if (!axAnim.Enabled) axAnim.Start(); }
-            else { axBig = big; axReveal = big.Length; }
-            string bigDraw = axReveal < big.Length ? big.Substring(0, axReveal) : big;
+            string big = d.Last == -2 ? "···" : d.Dead ? Loc.T("НЕТ СВЯЗИ") : d.Last < 0 ? "×" : Math.Round(d.Last).ToString();
             var bf = d.Dead ? Theme.Title(13f) : Theme.Title(20f);
-            Theme.Glow(g, bigDraw, bf, st, new RectangleF(10, 18, 120, 34), Theme.Left);
-            if (axReveal < big.Length && (int)((DateTime.Now - axFlash).TotalMilliseconds / 130) % 2 == 0)
-            {
-                float cw = bigDraw.Length > 0 ? g.MeasureString(bigDraw, bf).Width : 0;
-                using (var b = new SolidBrush(Color.FromArgb(210, st))) g.FillRectangle(b, 11 + cw, 22, 7, 22);
-            }
+            Theme.Glow(g, big, bf, st, new RectangleF(10, 18, 120, 34), Theme.Left);
             if (d.Last >= 0 && !d.Dead)
             {
                 float bw = g.MeasureString(big, bf).Width;
