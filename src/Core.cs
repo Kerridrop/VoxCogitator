@@ -93,6 +93,7 @@ namespace Cogitator
         public string Probe(out Color c)
         {
             FindPhys();
+            if (Store.Stealth) { c = Theme.GreenDim; return Loc.T("СКРЫТНЫЙ РЕЖИМ — СЕРВЕР НЕ ПРОЩУПЫВАЕТСЯ"); }
             string ip = ResolveIp(serverCfg);
             if (ip == null) { c = Theme.Red; return Loc.T("АДРЕС НЕ РАЗРЕШАЕТСЯ"); }
             var r = Bypass ? PingVia(ip, 3, myIp) : PingStats(ip, 3, 1000, 32, false, 100);
@@ -741,24 +742,35 @@ namespace Cogitator
 
             if (vpnUp && (!probeOk || tunnelDead)) { tunnelDownSeen = true; DirectCheck(); }
             if (serverCfg.Length == 0) { L("warn", Loc.T("Адрес святилища (VPN-сервера) не указан — впиши его справа (он виден в клиенте Amnezia под названием сервера)")); return; }
-            serverIp = ResolveIp(serverCfg);
-            if (serverIp == null) { L("fail", Loc.T("Не удалось получить IP для «") + serverCfg + "»"); return; }
-            srv = Bypass ? PingVia(serverIp, 10, myIp) : PingStats(serverIp, 20);
-            sshOk = Bypass ? TcpOkVia(serverIp, sshPort, 3000, myIp) : TcpOk(serverIp, sshPort, 3000);
-            if (Bypass && tunnelAlive && srv.Recv == 0 && !sshOk)
+            if (!Store.Stealth)
             {
-                L("info", Loc.T("Пинг и SSH до сервера в обход туннеля не проходят — скорее всего, их закрывает kill switch. Туннель при этом живой и получает ответы, значит сам сервер работает."));
-                serverReachable = true;
+                serverIp = ResolveIp(serverCfg);
+                if (serverIp == null) { L("fail", Loc.T("Не удалось получить IP для «") + serverCfg + "»"); return; }
+            }
+            if (Store.Stealth)
+            {
+                serverReachable = vpnUp && tunnelAlive;
+                L("info", Loc.T("Скрытный режим: сервер напрямую не прощупываю, чтобы не светить VPN провайдеру. Сужу по туннелю."));
             }
             else
             {
-                ShowPing(Bypass ? Loc.T("Пинг сервера в обход туннеля") : Loc.T("Пинг сервера"), srv, 150);
-                if (sshOk) L("ok", Loc.T("Сервер принимает соединения на порту ") + sshPort + Loc.T(" (SSH) — сам сервер жив"));
-                else L("warn", Loc.T("Порт ") + sshPort + Loc.T(" (SSH) не отвечает"));
-                serverReachable = srv.Recv > 0 || sshOk || (vpnUp && tunnelAlive);
+                srv = Bypass ? PingVia(serverIp, 10, myIp) : PingStats(serverIp, 20);
+                sshOk = Bypass ? TcpOkVia(serverIp, sshPort, 3000, myIp) : TcpOk(serverIp, sshPort, 3000);
+                if (Bypass && tunnelAlive && srv.Recv == 0 && !sshOk)
+                {
+                    L("info", Loc.T("Пинг и SSH до сервера в обход туннеля не проходят — скорее всего, их закрывает kill switch. Туннель при этом живой и получает ответы, значит сам сервер работает."));
+                    serverReachable = true;
+                }
+                else
+                {
+                    ShowPing(Bypass ? Loc.T("Пинг сервера в обход туннеля") : Loc.T("Пинг сервера"), srv, 150);
+                    if (sshOk) L("ok", Loc.T("Сервер принимает соединения на порту ") + sshPort + Loc.T(" (SSH) — сам сервер жив"));
+                    else L("warn", Loc.T("Порт ") + sshPort + Loc.T(" (SSH) не отвечает"));
+                    serverReachable = srv.Recv > 0 || sshOk || (vpnUp && tunnelAlive);
+                }
+                if (!serverReachable && directKnown && !directOk)
+                    L("info", Loc.T("Проверить сервер не вышло: трафик мимо туннеля закрыт (kill switch), так что это ещё не значит, что сервер лежит."));
             }
-            if (!serverReachable && directKnown && !directOk)
-                L("info", Loc.T("Проверить сервер не вышло: трафик мимо туннеля закрыт (kill switch), так что это ещё не значит, что сервер лежит."));
 
             if (pubIp == null) pubIp = GetPublicIp();
             if (pubIp != null && vpnUp)
@@ -1051,7 +1063,7 @@ namespace Cogitator
 
         void CheckPath()
         {
-            if (serverIp == null && serverCfg.Length > 0) serverIp = ResolveIp(serverCfg);
+            if (!Store.Stealth && serverIp == null && serverCfg.Length > 0) serverIp = ResolveIp(serverCfg);
             bool tunnelWorks = false;
             if (vpnUp)
             {
@@ -1060,18 +1072,19 @@ namespace Cogitator
                 if (!tunnelWorks) { tunnelDownSeen = true; DirectCheck(); }
             }
             pathViaTunnel = vpnUp && tunnelWorks;
-            if (serverIp != null && !sshOk) sshOk = Bypass ? TcpOkVia(serverIp, sshPort, 3000, myIp) : TcpOk(serverIp, sshPort, 3000);
+            if (!Store.Stealth && serverIp != null && !sshOk) sshOk = Bypass ? TcpOkVia(serverIp, sshPort, 3000, myIp) : TcpOk(serverIp, sshPort, 3000);
             pathNetOk = pathViaTunnel || (!vpnUp && (internetOk || PingStats("1.1.1.1", 3, 1000, 32, false, 100).Recv > 0 || TcpOk("1.1.1.1", 443, 2000)));
 
             var legs = new List<Leg>();
-            if (serverIp != null || !pathViaTunnel)
-                legs.Add(new Leg { Target = serverIp ?? "1.1.1.1", Tunnel = false,
-                    Title = serverIp != null ? Loc.T("ПУТЬ ДО СВЯТИЛИЩА — дом → провайдер → магистраль → хостер (") + serverIp + ")" : Loc.T("ПУТЬ ЧЕРЕЗ ВАРП — pathping до ") + "1.1.1.1" });
+            bool traceServer = !Store.Stealth && serverIp != null;
+            if (traceServer || !pathViaTunnel)
+                legs.Add(new Leg { Target = traceServer ? serverIp : "1.1.1.1", Tunnel = false,
+                    Title = traceServer ? Loc.T("ПУТЬ ДО СВЯТИЛИЩА — дом → провайдер → магистраль → хостер (") + serverIp + ")" : Loc.T("ПУТЬ ЧЕРЕЗ ВАРП — pathping до ") + "1.1.1.1" });
             if (pathViaTunnel)
                 legs.Add(new Leg { Target = "1.1.1.1", Tunnel = true, Title = Loc.T("ПУТЬ ЗА СВЯТИЛИЩЕМ — через туннель до 1.1.1.1") });
             L("info", legs.Count > 1 ? Loc.T("Две трассы идут разом: до святилища мимо туннеля и через туннель дальше. Около минуты, не закрывай когитатор.") : Loc.T("Трассировка займёт около минуты. Не закрывай когитатор."));
 
-            string serverAsn = AsnOf(serverIp);
+            string serverAsn = traceServer ? AsnOf(serverIp) : null;
             try
             {
                 Parallel.ForEach(legs, lg =>
@@ -1574,6 +1587,7 @@ namespace Cogitator
 
         public static string Pattern = "", Isp = "", Active = "";
         public static bool Guard, Hud;
+        public static bool Stealth = true;
         public static string Lang = "";
         public static int HudX = -1, HudY = -1;
         public static int HudOpacity = 90;
@@ -2386,6 +2400,7 @@ namespace Cogitator
 
         public static void Probe(Drop d)
         {
+            if (Store.Stealth) { d.Probed = 0; return; }
             try
             {
                 var s = Store.ActiveSanctum;

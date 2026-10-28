@@ -876,7 +876,9 @@ namespace Cogitator
             "Святилище отвечает, туннель несёт трафик — связь в порядке. Пошаговую карту пути скрывает защита, а не поломка.",
             "СВЯТИЛИЩЕ ОТВЕЧАЕТ, ПУТЬ НЕ РАЗГЛЯДЕТЬ",
             "Прямые пробы подтверждают святилище, но трасса пуста — туннель не подтверждён. Запусти ритуал V (перекличка) для потерь.",
-            "Связь не подтверждается и трасса пуста — запусти ритуал IV для полной картины."
+            "Связь не подтверждается и трасса пуста — запусти ритуал IV для полной картины.",
+            "СКРЫТНЫЙ РЕЖИМ — СЕРВЕР НЕ ПРОЩУПЫВАЕТСЯ",
+            "Скрытный режим: сервер напрямую не прощупываю, чтобы не светить VPN провайдеру. Сужу по туннелю."
         };
 
         static readonly string[] EnS =
@@ -1729,7 +1731,9 @@ namespace Cogitator
             "The sanctum answers and the tunnel carries traffic — the link is fine. The hop-by-hop map is hidden by protection, not a fault.",
             "SANCTUM ANSWERS, PATH NOT VISIBLE",
             "Direct probes confirm the sanctum, but the trace is empty — the tunnel isn't confirmed. Run ritual V (roll call) for loss.",
-            "The link isn't confirmed and the trace is empty — run ritual IV for the full picture."
+            "The link isn't confirmed and the trace is empty — run ritual IV for the full picture.",
+            "STEALTH MODE — SERVER NOT PROBED",
+            "Stealth mode: not probing the server directly, so the provider can't see your VPN. Judging by the tunnel."
         };
     }
 }

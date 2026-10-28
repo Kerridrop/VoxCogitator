@@ -33,7 +33,7 @@ namespace Cogitator
 {
     static class Program
     {
-        public const string Version = "1.0.2";
+        public const string Version = "1.0.3";
 #if STAGE
         public const string Stage = "-stage";
 #else
